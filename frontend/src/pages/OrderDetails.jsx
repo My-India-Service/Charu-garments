@@ -53,8 +53,6 @@ const STEPS = [
   },
 ];
 
-const DELIVERY_CHARGE = 10;
-
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 function fmtDate(date) {
@@ -201,13 +199,19 @@ const OrderDetails = () => {
   const { orderId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { backendUrl, token, currency } = useContext(ShopContext);
+  const { backendUrl, token, currency, products } = useContext(ShopContext);
 
   const [order, setOrder] = useState(location.state?.order || null);
   const [loading, setLoading] = useState(!location.state?.order);
   const [refreshing, setRefreshing] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [requestOpen, setRequestOpen] = useState(false);
+  const [requestType, setRequestType] = useState("return");
+  const [requestReason, setRequestReason] = useState("Wrong size");
+  const [requestNote, setRequestNote] = useState("");
+  const [requestLoading, setRequestLoading] = useState(false);
+  const [exchangeSizes, setExchangeSizes] = useState({});
 
   const fetchOrder = async (silent = false) => {
     try {
@@ -270,6 +274,47 @@ const OrderDetails = () => {
     }
   };
 
+  const submitRequest = async () => {
+    try {
+      setRequestLoading(true);
+      const response = await axios.post(
+        backendUrl + "/api/return/request",
+        {
+          orderId,
+          type: requestType,
+          reason: requestReason,
+          note: requestNote,
+          exchangeItems:
+            requestType === "exchange"
+              ? Object.entries(exchangeSizes)
+                  .filter(([, newSize]) => newSize)
+                  .map(([itemIndex, newSize]) => ({
+                    itemIndex: Number(itemIndex),
+                    newSize,
+                  }))
+              : [],
+        },
+        { headers: { token } },
+      );
+      if (response.data.success) {
+        toast.success(
+          requestType === "exchange"
+            ? "Exchange requested. We'll send the new size after approval."
+            : "Request submitted. Refund will be added to your wallet after approval.",
+        );
+        setRequestOpen(false);
+        setRequestNote("");
+        fetchOrder(true);
+      } else {
+        toast.error(response.data.message);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message);
+    } finally {
+      setRequestLoading(false);
+    }
+  };
+
   const copyOrderId = () => {
     if (!order?._id) return;
     navigator.clipboard
@@ -316,6 +361,26 @@ const OrderDetails = () => {
   const canCancel =
     order.status === "Order Placed" || order.status === "Packing";
   const isRefunded = order.refundStatus === "Refunded";
+  const deliveredAt = order.statusHistory?.find(
+    (row) => row.status === "Delivered",
+  )?.date;
+  const withinReturnWindow =
+    deliveredAt && Date.now() - deliveredAt <= 7 * 24 * 60 * 60 * 1000;
+  const activeRequest =
+    order.returnRequest && order.returnRequest.status !== "Rejected"
+      ? order.returnRequest
+      : null;
+  const canAskReturn =
+    order.status === "Delivered" &&
+    withinReturnWindow &&
+    !isRefunded &&
+    !activeRequest;
+  const canAskExchange = canAskReturn;
+  const canAskRefund =
+    !isRefunded &&
+    !activeRequest &&
+    ((order.status === "Cancelled" && (order.payment || order.walletUsed > 0)) ||
+      (order.status === "Delivered" && withinReturnWindow));
   const totalItems = order.items.reduce(
     (sum, it) => sum + Number(it.quantity || 0),
     0,
@@ -324,7 +389,15 @@ const OrderDetails = () => {
     (sum, it) => sum + Number(it.price || 0) * Number(it.quantity || 0),
     0,
   );
-  const deliveryFee = Math.max(order.amount - subtotal, 0) || DELIVERY_CHARGE;
+  const deliveryFee =
+    order.deliveryCharge != null
+      ? Number(order.deliveryCharge)
+      : Math.max(
+          order.amount + Number(order.couponDiscount || 0) - subtotal,
+          0,
+        );
+  const fastExtra = Number(order.fastCharge || 0);
+  const standardDelivery = Math.max(deliveryFee - fastExtra, 0);
   const a = order.address || {};
 
   const getStepDate = (step, i) => {
@@ -475,10 +548,27 @@ const OrderDetails = () => {
               <div className="flex items-center justify-between">
                 <span>Delivery Fee</span>
                 <span className="text-gray-900">
-                  {currency}
-                  {deliveryFee}
+                  {standardDelivery === 0 ? "Free" : `${currency}${standardDelivery}`}
                 </span>
               </div>
+              {fastExtra > 0 && (
+                <div className="flex items-center justify-between">
+                  <span>Fast delivery</span>
+                  <span className="text-gray-900">
+                    {currency}
+                    {fastExtra}
+                  </span>
+                </div>
+              )}
+              {order.couponDiscount > 0 && (
+                <div className="flex items-center justify-between">
+                  <span>Coupon {order.couponCode}</span>
+                  <span className="text-emerald-700">
+                    -{currency}
+                    {order.couponDiscount}
+                  </span>
+                </div>
+              )}
               <div className="flex items-center justify-between pt-2.5 border-t border-gray-100">
                 <span className="font-semibold text-gray-900">Total</span>
                 <span className="text-base font-bold text-gray-900">
@@ -549,12 +639,98 @@ const OrderDetails = () => {
                 <div className="flex items-center justify-between pt-2 border-t border-gray-100">
                   <span>Refund</span>
                   <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-green-50 text-green-700">
-                    Processed
+                    {currency}
+                    {order.refundAmount || "in wallet"}
+                  </span>
+                </div>
+              )}
+              {order.walletUsed > 0 && (
+                <div className="flex items-center justify-between">
+                  <span>Wallet used</span>
+                  <span className="font-medium text-gray-900">
+                    {currency}
+                    {order.walletUsed}
                   </span>
                 </div>
               )}
             </div>
           </div>
+
+          {(canAskReturn || canAskRefund || canAskExchange || order.returnRequest) && (
+            <div className="rounded-2xl border border-gray-100 bg-white p-5 sm:p-6">
+              <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
+                Return & refund
+              </h2>
+              {order.returnRequest && (
+                <p className="mt-2 text-sm text-gray-600">
+                  {order.returnRequest.type === "exchange"
+                    ? "Size exchange"
+                    : order.returnRequest.type === "return"
+                      ? "Return"
+                      : "Refund"}{" "}
+                  request is{" "}
+                  <span className="font-medium text-gray-900">
+                    {order.returnRequest.status}
+                  </span>
+                  .
+                  {order.returnRequest.type === "exchange"
+                    ? " The new size is sent after approval. No extra charge."
+                    : ` Amount ${currency}${order.returnRequest.amount} goes to your wallet once approved.`}
+                </p>
+              )}
+              {order.returnRequest?.exchangeItems?.length > 0 && (
+                <ul className="mt-2 text-xs text-gray-500 space-y-1">
+                  {order.returnRequest.exchangeItems.map((line) => (
+                    <li key={`${line.itemIndex}-${line.newSize}`}>
+                      {line.name}: {line.oldSize} → {line.newSize}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {(canAskReturn || canAskRefund || canAskExchange) && (
+                <div className="mt-3 flex flex-col gap-2">
+                  {canAskExchange && (
+                    <button
+                      onClick={() => {
+                        setRequestType("exchange");
+                        setRequestReason("Wrong size");
+                        setExchangeSizes({});
+                        setRequestOpen(true);
+                      }}
+                      className="w-full rounded-xl border border-gray-900 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-gray-900 hover:bg-gray-900 hover:text-white"
+                    >
+                      Exchange size
+                    </button>
+                  )}
+                  {canAskReturn && (
+                    <button
+                      onClick={() => {
+                        setRequestType("return");
+                        setRequestOpen(true);
+                      }}
+                      className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-gray-800 hover:bg-gray-50"
+                    >
+                      Request return
+                    </button>
+                  )}
+                  {canAskRefund && (
+                    <button
+                      onClick={() => {
+                        setRequestType("refund");
+                        setRequestOpen(true);
+                      }}
+                      className="w-full rounded-xl bg-gray-900 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-white hover:bg-black"
+                    >
+                      Request refund
+                    </button>
+                  )}
+                  <p className="text-[11px] text-gray-400">
+                    Delivered orders can be returned or exchanged for another size within 7 days. Refunds go to your wallet. Size exchanges are free.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Cancel button — desktop only */}
           {canCancel && (
@@ -577,6 +753,101 @@ const OrderDetails = () => {
           >
             Cancel Order
           </button>
+        </div>
+      )}
+
+      {requestOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => !requestLoading && setRequestOpen(false)}
+          />
+          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+            <h3 className="text-lg font-semibold text-gray-900">
+              {requestType === "exchange"
+                ? "Exchange size"
+                : requestType === "return"
+                  ? "Request a return"
+                  : "Request a refund"}
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              {requestType === "exchange"
+                ? "Pick a new size. After approval we send that size and take the old one back."
+                : "After approval, the amount is added to your wallet."}
+            </p>
+            {requestType === "exchange" && (
+              <div className="mt-4 space-y-3">
+                {order.items.map((item, index) => {
+                  const live = products.find((product) => product._id === item._id);
+                  const sizes = (live?.sizes?.length ? live.sizes : item.sizes || []).filter(
+                    (size) => size !== item.size,
+                  );
+                  return (
+                    <label key={`${item._id}-${item.size}-${index}`} className="block text-xs font-medium text-gray-500">
+                      {item.name} · now {item.size}
+                      <select
+                        value={exchangeSizes[index] || ""}
+                        onChange={(e) =>
+                          setExchangeSizes((prev) => ({
+                            ...prev,
+                            [index]: e.target.value,
+                          }))
+                        }
+                        className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-800"
+                      >
+                        <option value="">Keep this size</option>
+                        {sizes.map((size) => (
+                          <option key={size} value={size}>
+                            {size}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+            <label className="mt-4 block text-xs font-medium text-gray-500">
+              Reason
+              <select
+                value={requestReason}
+                onChange={(e) => setRequestReason(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-800"
+              >
+                <option>Wrong size</option>
+                <option>Damaged item</option>
+                <option>Not as described</option>
+                <option>Changed my mind</option>
+                <option>Other</option>
+              </select>
+            </label>
+            <label className="mt-3 block text-xs font-medium text-gray-500">
+              Note
+              <textarea
+                value={requestNote}
+                onChange={(e) => setRequestNote(e.target.value)}
+                rows={3}
+                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-800"
+                placeholder="Tell us what happened"
+              />
+            </label>
+            <div className="mt-4 flex gap-3">
+              <button
+                onClick={() => setRequestOpen(false)}
+                disabled={requestLoading}
+                className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitRequest}
+                disabled={requestLoading}
+                className="flex-1 rounded-lg bg-gray-900 py-2.5 text-sm font-medium text-white disabled:opacity-60"
+              >
+                {requestLoading ? "Submitting..." : "Submit"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

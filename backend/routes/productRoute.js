@@ -1,6 +1,9 @@
 import express from "express";
 import {
   listProducts,
+  adminListProducts,
+  setProductActive,
+  setBestseller,
   addProduct,
   removeProduct,
   singleProduct,
@@ -28,6 +31,9 @@ productRouter.post("/remove", adminAuth, removeProduct);
 productRouter.post("/single", singleProduct);
 
 productRouter.get("/list", listProducts);
+productRouter.get("/admin-list", adminAuth, adminListProducts);
+productRouter.post("/status", adminAuth, setProductActive);
+productRouter.post("/bestseller", adminAuth, setBestseller);
 
 productRouter.post(
   "/update",

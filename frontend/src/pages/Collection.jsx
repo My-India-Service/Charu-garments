@@ -1,17 +1,38 @@
 import React, { useContext, useEffect, useState } from "react";
+import axios from "axios";
 import { ShopContext } from "../context/ShopContext";
 import { assets } from "../assets/assets";
 import Title from "../components/Title";
 import ProductItem from "../components/ProductItem";
 
 const Collection = () => {
-  const { products, search, showSearch } = useContext(ShopContext);
+  const { products, search, showSearch, backendUrl } = useContext(ShopContext);
 
   const [showFilter, setShowFilter] = useState(false);
   const [filterProducts, setFilterProducts] = useState([]);
   const [category, setCategory] = useState([]);
   const [subCategory, setSubCategory] = useState([]);
+  const [categoryOptions, setCategoryOptions] = useState([]);
+  const [subCategoryOptions, setSubCategoryOptions] = useState([]);
   const [sortType, setSortType] = useState("relevant");
+
+  useEffect(() => {
+    axios
+      .get(backendUrl + "/api/category/list")
+      .then((response) => {
+        if (!response.data.success) return;
+        const rows = response.data.categories || [];
+        setCategoryOptions(rows.map((item) => item.name));
+        setSubCategoryOptions([
+          ...new Set(
+            rows.flatMap((item) =>
+              (item.subCategories || []).map((sub) => sub.name),
+            ),
+          ),
+        ]);
+      })
+      .catch(() => {});
+  }, [backendUrl]);
 
   const toggleCategory = (e) => {
     if (category.includes(e.target.value)) {
@@ -179,14 +200,14 @@ const Collection = () => {
 
           <FilterGroup
             title="Categories"
-            options={["Men", "Women", "Kids"]}
+            options={categoryOptions}
             checked={category}
             onChange={toggleCategory}
           />
 
           <FilterGroup
             title="Type"
-            options={["Topwear", "Bottomwear", "Winterwear"]}
+            options={subCategoryOptions}
             checked={subCategory}
             onChange={toggleSubCategory}
           />

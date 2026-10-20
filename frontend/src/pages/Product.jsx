@@ -202,8 +202,18 @@ const Product = () => {
       return;
     }
 
-    addToCart(productData._id, size);
-    toast.success("Added to cart", { duration: 2000 });
+    const stockRows = productData.stock || [];
+    const stockRow = stockRows.find((row) => row.size === size);
+    if (stockRows.length && (!stockRow || stockRow.quantity < 1)) {
+      toast.error("This size is out of stock");
+      return;
+    }
+
+    addToCart(productData._id, size).then((added) => {
+      if (added !== false) {
+        toast.success("Added to cart", { duration: 2000 });
+      }
+    });
   };
 
   return productData ? (
@@ -371,19 +381,39 @@ const Product = () => {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              {productData.sizes.map((item, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSize(item)}
-                  className={`w-[54px] h-[48px] text-[13px] font-medium rounded-xl border-[1.5px] transition-all duration-200 focus:outline-none ${
-                    item === size
-                      ? "border-gray-900 bg-gray-900 text-white shadow-lg shadow-gray-200"
-                      : "border-gray-200 bg-white text-gray-600 hover:border-gray-700 hover:text-gray-900"
-                  }`}
-                >
-                  {item}
-                </button>
-              ))}
+              {productData.sizes.map((item, index) => {
+                const stockRows = productData.stock || [];
+                const stockRow = stockRows.find((row) => row.size === item);
+                const outOfStock =
+                  stockRows.length > 0 && (!stockRow || stockRow.quantity === 0);
+                const low =
+                  stockRow &&
+                  stockRow.quantity > 0 &&
+                  stockRow.quantity <= (productData.lowStockThreshold ?? 5);
+
+                return (
+                  <button
+                    key={index}
+                    type="button"
+                    disabled={outOfStock}
+                    onClick={() => setSize(item)}
+                    className={`min-w-[54px] min-h-[48px] px-2 py-1.5 text-[13px] font-medium rounded-xl border-[1.5px] transition-all duration-200 focus:outline-none ${
+                      outOfStock
+                        ? "border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed line-through"
+                        : item === size
+                          ? "border-gray-900 bg-gray-900 text-white shadow-lg shadow-gray-200"
+                          : "border-gray-200 bg-white text-gray-600 hover:border-gray-700 hover:text-gray-900"
+                    }`}
+                  >
+                    {item}
+                    {low && (
+                      <span className="block text-[9px] font-normal tracking-normal text-amber-600">
+                        {stockRow.quantity} left
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Size error hint */}

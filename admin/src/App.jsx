@@ -9,6 +9,12 @@ import Login from "./components/Login";
 import Add from "./pages/Add";
 import List from "./pages/List";
 import Orders from "./pages/Orders";
+import Inventory from "./pages/Inventory";
+import Returns from "./pages/Returns";
+import Categories from "./pages/Categories";
+import Offers from "./pages/Offers";
+import Delivery from "./pages/Delivery";
+import Settings from "./pages/Settings";
 
 export const backendUrl = import.meta.env.VITE_BACKEND_URL;
 export const currency = "₹";
@@ -52,11 +58,17 @@ const App = () => {
             />
 
             <main className="flex-1 md:ml-[18%] overflow-y-auto px-4 py-6 sm:px-6 lg:px-8 text-base text-gray-600">
-              <div className="mx-auto max-w-5xl">
+              <div className="mx-auto max-w-6xl">
                 <Routes>
                   <Route path="/add" element={<Add token={token} />} />
                   <Route path="/list" element={<List token={token} />} />
+                  <Route path="/categories" element={<Categories token={token} />} />
+                  <Route path="/inventory" element={<Inventory token={token} />} />
                   <Route path="/orders" element={<Orders token={token} />} />
+                  <Route path="/returns" element={<Returns token={token} />} />
+                  <Route path="/offers" element={<Offers token={token} />} />
+                  <Route path="/delivery" element={<Delivery token={token} />} />
+                  <Route path="/settings" element={<Settings token={token} />} />
                 </Routes>
               </div>
             </main>

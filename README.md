@@ -1,4 +1,4 @@
-# ZYRA — Fashion Commerce Platform
+# Charu Garments — Fashion Commerce Platform
 
 <p align="center">
   <img src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=white" />
@@ -46,7 +46,7 @@
 
 ## Overview
 
-ZYRA is a complete fashion e-commerce solution built on the MERN stack. It provides a seamless shopping experience for customers and full operational control for administrators through a separate admin panel.
+Charu Garments is a complete fashion e-commerce solution built on the MERN stack. It provides a seamless shopping experience for customers and full operational control for administrators through a separate admin panel.
 
 The platform covers the entire e-commerce lifecycle — from product discovery and cart management to payment processing, order fulfillment, and verified delivery — across a fully responsive interface.
 

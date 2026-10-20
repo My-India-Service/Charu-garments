@@ -178,18 +178,45 @@ const Orders = ({ token }) => {
     }
   };
 
+  const openDeliveryModal = (order) => {
+    setOtpModalOrder(order);
+    setOtpInput(order.deliveryOtp || "");
+    setOtpError("");
+    setTimeout(() => otpBoxRefs.current[5]?.focus(), 0);
+  };
+
   const statusHandler = async (event, orderId) => {
     const newStatus = event.target.value;
+    const current = orders.find((order) => order._id === orderId);
 
-    // "Delivered" requires OTP verification — open modal instead of
-    // calling the status endpoint directly.
+    // Delivered needs the code created at "Out for delivery".
     if (newStatus === "Delivered") {
-      setOtpModalOrder(
-        orders.find((o) => o._id === orderId) || { _id: orderId },
-      );
-      setOtpInput("");
-      setOtpError("");
-      setTimeout(() => otpBoxRefs.current[0]?.focus(), 0);
+      if (current?.status === "Out for delivery" && current.deliveryOtp) {
+        openDeliveryModal(current);
+        return;
+      }
+
+      try {
+        const response = await axios.patch(
+          `${backendUrl}/api/order/${orderId}/status`,
+          { status: "Out for delivery" },
+          { headers: { token } },
+        );
+
+        if (!response.data.success) {
+          toast.error(response.data.message);
+          return;
+        }
+
+        const updated = response.data.order;
+        setOrders((prev) =>
+          prev.map((order) => (order._id === orderId ? updated : order)),
+        );
+        toast.success("Delivery code generated");
+        openDeliveryModal(updated);
+      } catch (error) {
+        toast.error(error.response?.data?.message || error.message);
+      }
       return;
     }
 
@@ -616,6 +643,30 @@ const Orders = ({ token }) => {
                     </div>
                   </div>
 
+                  {order.status === "Out for delivery" && order.deliveryOtp && (
+                    <div className="mb-4 rounded-xl border border-purple-100 bg-purple-50 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div>
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-purple-600">
+                          Delivery code
+                        </p>
+                        <p className="mt-1 font-mono text-xl font-semibold tracking-[0.28em] text-slate-900">
+                          {order.deliveryOtp}
+                        </p>
+                        <p className="mt-1 text-xs text-purple-700/80">
+                          The customer sees this on their order page. Enter it
+                          when you mark the order delivered.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => openDeliveryModal(order)}
+                        className="shrink-0 rounded-xl bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-black"
+                      >
+                        Enter code
+                      </button>
+                    </div>
+                  )}
+
                   {/* Bottom: badges + status selector */}
                   <div
                     className={`flex flex-col gap-3 sm:flex-row sm:items-center ${
@@ -696,7 +747,7 @@ const Orders = ({ token }) => {
                             ) : (
                               <>
                                 <RotateCcw className="w-3 h-3" />
-                                Process Refund
+                                Refund to wallet
                               </>
                             )}
                           </button>
@@ -787,8 +838,20 @@ const Orders = ({ token }) => {
             </div>
 
             <p className="text-xs text-gray-500 mb-4">
-              Enter the 6-digit OTP shown on the customer's order tracking page.
+              Type the delivery code in the boxes below. The same code is on
+              the customer's order page.
             </p>
+
+            {otpModalOrder.deliveryOtp && (
+              <div className="mb-4 rounded-xl border border-purple-100 bg-purple-50 px-4 py-3 text-center">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-purple-600">
+                  Code for this order
+                </p>
+                <p className="mt-1 font-mono text-2xl font-semibold tracking-[0.35em] text-slate-900">
+                  {otpModalOrder.deliveryOtp}
+                </p>
+              </div>
+            )}
 
             <div className="flex items-center justify-center gap-2 mb-1">
               {Array.from({ length: 6 }).map((_, i) => (

@@ -34,7 +34,7 @@ const LatestCollection = () => {
         <Title text1={"LATEST"} text2={"COLLECTIONS"} />
 
         <p className="mt-3 mx-auto max-w-md text-xs sm:text-sm text-gray-500 leading-relaxed px-4 sm:px-0">
-          Discover the newest styles at ZYRA, crafted for comfort, confidence,
+          Discover the newest styles at Charu Garments, crafted for comfort, confidence,
           and everyday fashion.
         </p>
       </div>

@@ -19,7 +19,7 @@ const About = () => {
           <img
             className="w-full h-full object-cover"
             src={assets.about_img}
-            alt="About ZYRA"
+            alt="About Charu Garments"
           />
         </div>
 
@@ -31,7 +31,7 @@ const About = () => {
             </p>
 
             <p className="text-sm text-gray-600 leading-7">
-              ZYRA was created with a vision to redefine online fashion by
+              Charu Garments was created with a vision to redefine online fashion by
               combining premium quality, modern trends, and effortless shopping.
               We believe that style should be accessible to everyone, making it
               easy to discover pieces that match every personality and occasion.
@@ -40,7 +40,7 @@ const About = () => {
 
           <div className="py-5 border-b border-gray-100">
             <p className="text-sm text-gray-600 leading-7">
-              Every collection at ZYRA is thoughtfully curated to deliver
+              Every collection at Charu Garments is thoughtfully curated to deliver
               timeless essentials and trend-driven fashion. Working with trusted
               manufacturers and premium materials, we ensure every product
               offers exceptional comfort, quality, and value for our customers.
@@ -55,7 +55,7 @@ const About = () => {
             <p className="text-sm text-gray-600 leading-7">
               Our mission is to create a seamless fashion experience where
               premium style meets convenience. From browsing the latest
-              collections to secure checkout and fast delivery, ZYRA is
+              collections to secure checkout and fast delivery, Charu Garments is
               dedicated to making every shopping journey simple, reliable, and
               enjoyable.
             </p>

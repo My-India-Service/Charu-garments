@@ -201,7 +201,7 @@ const Cart = () => {
         <div className="flex justify-end mt-10 mb-16 sm:my-20">
           <div className="w-full sm:w-[440px]">
             <div className="h-px bg-gray-100 mb-6" />
-            <CartTotal />
+            <CartTotal showShipping={false} />
             <div className="mt-6">
               <button
                 onClick={() => navigate("/place-order")}

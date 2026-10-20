@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useContext } from "react";
 import Title from "../components/Title";
 import { assets } from "../assets/assets";
 import NewsletterBox from "../components/NewsletterBox";
+import { ShopContext } from "../context/ShopContext";
 import {
   Phone,
   Mail,
@@ -15,6 +16,8 @@ import {
 } from "lucide-react";
 
 const Contact = () => {
+  const { siteSettings } = useContext(ShopContext);
+  const phoneHref = `tel:${String(siteSettings.phone || "").replace(/[^\d+]/g, "")}`;
   const features = [
     {
       icon: <Sparkles className="w-4 h-4" />,
@@ -53,7 +56,7 @@ const Contact = () => {
           <img
             className="w-full h-full object-cover"
             src={assets.contact_img}
-            alt="ZYRA Contact"
+            alt="Charu Garments Contact"
           />
         </div>
 
@@ -70,11 +73,11 @@ const Contact = () => {
 
               <div>
                 <p className="font-semibold text-gray-900">
-                  ZYRA Fashion Store
+                  Charu Garments
                 </p>
 
-                <p className="text-sm text-gray-500 mt-1">
-                  Bhimavaram, Andhra Pradesh, India
+                <p className="text-sm text-gray-500 mt-1 whitespace-pre-line">
+                  {siteSettings.address}
                 </p>
               </div>
             </div>
@@ -88,23 +91,23 @@ const Contact = () => {
 
             <div className="flex flex-col gap-4">
               <a
-                href="tel:+919876543201"
+                href={phoneHref}
                 className="flex items-center gap-3 text-sm text-gray-600 hover:text-black transition"
               >
                 <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center">
                   <Phone className="w-4 h-4 text-white" />
                 </div>
-                +91 9876543201
+                {siteSettings.phone}
               </a>
 
               <a
-                href="mailto:support@zyra.com"
+                href={`mailto:${siteSettings.email}`}
                 className="flex items-center gap-3 text-sm text-gray-600 hover:text-black transition"
               >
                 <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center">
                   <Mail className="w-4 h-4 text-white" />
                 </div>
-                support@zyra.com
+                {siteSettings.email}
               </a>
             </div>
           </div>
@@ -112,7 +115,7 @@ const Contact = () => {
           {/* Why Choose */}
           <div className="py-5 border-b border-gray-100">
             <p className="text-xs tracking-[0.15em] uppercase font-semibold text-gray-400 mb-4">
-              Why Choose ZYRA
+              Why Choose Charu Garments
             </p>
 
             <div className="grid sm:grid-cols-2 gap-4">

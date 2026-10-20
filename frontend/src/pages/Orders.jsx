@@ -249,6 +249,12 @@ const Orders = () => {
                     </span>
                     {order.status}
                   </span>
+                  {order.returnRequest &&
+                    order.returnRequest.status !== "Rejected" && (
+                      <span className="text-[10px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
+                        {order.returnRequest.type} {order.returnRequest.status}
+                      </span>
+                    )}
 
                   <svg
                     className="w-4 h-4 text-gray-300 group-hover:text-gray-400"

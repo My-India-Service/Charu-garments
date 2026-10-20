@@ -3,6 +3,7 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { ShopContext } from "../context/ShopContext";
+import { assets } from "../assets/assets";
 
 const Login = () => {
   const { token, setToken, backendUrl } = useContext(ShopContext);
@@ -64,6 +65,11 @@ const Login = () => {
     <div className="min-h-[80vh] flex items-center justify-center bg-white px-4 py-10">
       <div className="w-full max-w-md bg-white border border-gray-100 rounded-2xl shadow-lg p-8">
         <div className="text-center mb-8">
+          <img
+            src={assets.logo}
+            alt="Charu Garments"
+            className="w-28 h-28 object-contain mx-auto mb-4"
+          />
           <p className="text-3xl font-semibold text-gray-900">{currentState}</p>
           <p className="text-sm text-gray-500 mt-2">
             Welcome back! Please enter your details.

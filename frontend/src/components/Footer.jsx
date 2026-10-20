@@ -1,8 +1,12 @@
-import React from "react";
+import React, { useContext } from "react";
 import { assets } from "../assets/assets";
 import { Link } from "react-router-dom";
+import { ShopContext } from "../context/ShopContext";
 
 const Footer = () => {
+  const { siteSettings } = useContext(ShopContext);
+  const phoneHref = `tel:${String(siteSettings.phone || "").replace(/[^\d+]/g, "")}`;
+
   return (
     <footer className="mt-24 sm:mt-40">
       {/* ── Main Footer Grid ── */}
@@ -10,11 +14,11 @@ const Footer = () => {
         {/* Brand Column — full width on mobile */}
         <div className="col-span-2 sm:col-span-1">
           <Link to="/">
-            <img src={assets.logo} className="mb-5 w-28 sm:w-32" alt="ZYRA" />
+            <img src={assets.logo} className="mb-5 w-36 sm:w-40" alt="Charu Garments" />
           </Link>
 
           <p className="text-gray-500 leading-relaxed max-w-xs text-[13px]">
-            ZYRA brings modern fashion to your fingertips. Discover stylish
+            Charu Garments brings modern fashion to your fingertips. Discover stylish
             clothing for every occasion with quality, comfort, and affordability
             at the heart of every collection.
           </p>
@@ -51,19 +55,24 @@ const Footer = () => {
           </p>
           <ul className="flex flex-col gap-2.5">
             <li>
+              <p className="text-gray-500 text-[13px] whitespace-pre-line">
+                {siteSettings.address}
+              </p>
+            </li>
+            <li>
               <a
-                href="tel:+919876543210"
+                href={phoneHref}
                 className="text-gray-500 hover:text-black transition-colors duration-150 text-[13px]"
               >
-                +91 98765 43210
+                {siteSettings.phone}
               </a>
             </li>
             <li>
               <a
-                href="mailto:support@zyra.com"
+                href={`mailto:${siteSettings.email}`}
                 className="text-gray-500 hover:text-black transition-colors duration-150 text-[13px]"
               >
-                support@zyra.com
+                {siteSettings.email}
               </a>
             </li>
           </ul>
@@ -73,7 +82,7 @@ const Footer = () => {
       {/* ── Bottom Bar ── */}
       <div className="border-t border-gray-100 py-5 flex flex-col sm:flex-row items-center justify-between gap-2">
         <p className="text-[11px] text-gray-400">
-          © 2026 ZYRA. All rights reserved.
+          © 2026 Charu Garments. All rights reserved.
         </p>
         <div className="flex items-center gap-4 text-[11px] text-gray-400">
           <Link to="/privacy" className="hover:text-black transition-colors">

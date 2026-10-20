@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema(
     cartData: { type: Object, default: {} },
     phone: { type: String, default: "" },
     location: { type: String, default: "" },
+    walletBalance: { type: Number, default: 0, min: 0 },
   },
   { minimize: false },
 );

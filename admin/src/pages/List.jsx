@@ -8,11 +8,14 @@ const List = ({ token }) => {
   const [list, setList] = useState([]);
   const [confirmId, setConfirmId] = useState(null);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
-  // ── Fetch ──────────────────────────────────────────────────────────────────
   const fetchList = async () => {
     try {
-      const response = await axios.get(backendUrl + "/api/product/list");
+      const response = await axios.get(backendUrl + "/api/product/admin-list", {
+        headers: { token },
+      });
       if (response.data.success) {
         setList(response.data.products);
       } else {
@@ -54,6 +57,58 @@ const List = ({ token }) => {
     setEditingProduct(product);
   };
 
+  const toggleActive = async (product) => {
+    try {
+      const response = await axios.post(
+        backendUrl + "/api/product/status",
+        { id: product._id, active: product.active === false },
+        { headers: { token } },
+      );
+      if (response.data.success) {
+        toast.success(response.data.message);
+        await fetchList();
+      } else {
+        toast.error(response.data.message);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Could not update product");
+    }
+  };
+
+  const toggleBestseller = async (product) => {
+    try {
+      const response = await axios.post(
+        backendUrl + "/api/product/bestseller",
+        { id: product._id },
+        { headers: { token } },
+      );
+      if (response.data.success) {
+        toast.success(response.data.message);
+        await fetchList();
+      } else {
+        toast.error(response.data.message);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Could not update bestseller");
+    }
+  };
+
+  const visible = list.filter((item) => {
+    const term = query.trim().toLowerCase();
+    const matchesQuery =
+      !term ||
+      item.name.toLowerCase().includes(term) ||
+      item.category.toLowerCase().includes(term);
+    const enabled = item.active !== false;
+    const matchesStatus =
+      statusFilter === "all" ||
+      (statusFilter === "active" && enabled) ||
+      (statusFilter === "disabled" && !enabled);
+    return matchesQuery && matchesStatus;
+  });
+
   const pendingItem = list.find((p) => p._id === confirmId);
 
   return (
@@ -64,14 +119,43 @@ const List = ({ token }) => {
           All Products
         </h2>
         <p className="text-xs text-gray-400 mt-0.5">
-          {list.length} item{list.length !== 1 ? "s" : ""} listed
+          {visible.length} of {list.length} item{list.length !== 1 ? "s" : ""}
         </p>
+      </div>
+
+      <div className="mb-4 flex flex-col sm:flex-row gap-2">
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search name or category"
+          className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white"
+        />
+        <div className="flex gap-2">
+          {[
+            ["all", "All"],
+            ["active", "Enabled"],
+            ["disabled", "Disabled"],
+          ].map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setStatusFilter(key)}
+              className={`px-3 py-2 rounded-lg text-xs font-medium border ${
+                statusFilter === key
+                  ? "bg-gray-900 text-white border-gray-900"
+                  : "bg-white text-gray-500 border-gray-200"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Table */}
       <div className="rounded-xl border border-gray-200 overflow-hidden shadow-sm bg-white">
         {/* Header — desktop */}
-        <div className="hidden md:grid grid-cols-[80px_1fr_120px_100px_120px] items-center px-4 py-3 bg-gray-50 border-b border-gray-200">
+        <div className="hidden md:grid grid-cols-[72px_1fr_100px_72px_auto] items-center px-4 py-3 bg-gray-50 border-b border-gray-200">
           <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
             Image
           </span>
@@ -89,7 +173,7 @@ const List = ({ token }) => {
           </span>
         </div>
 
-        {list.length === 0 ? (
+        {visible.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-gray-400">
             <svg
               className="w-10 h-10 mb-3 text-gray-300"
@@ -111,10 +195,10 @@ const List = ({ token }) => {
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
-            {list.map((item, index) => (
+            {visible.map((item, index) => (
               <div
                 key={index}
-                className="grid items-center gap-3 px-4 py-3 grid-cols-[56px_1fr_auto] md:grid-cols-[80px_1fr_120px_100px_120px] hover:bg-gray-50/60 transition-colors duration-150"
+                className="grid items-center gap-3 px-4 py-3 grid-cols-[56px_1fr] sm:grid-cols-[56px_1fr_auto] md:grid-cols-[72px_1fr_100px_72px_auto] hover:bg-gray-50/60 transition-colors duration-150"
               >
                 {/* Thumbnail */}
                 <div className="w-12 h-12 md:w-14 md:h-14 rounded-lg overflow-hidden border border-gray-100 bg-gray-50 flex-shrink-0">
@@ -130,6 +214,22 @@ const List = ({ token }) => {
                   <p className="text-sm font-medium text-gray-800 truncate">
                     {item.name}
                   </p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span
+                      className={`text-[10px] font-medium rounded-full px-2 py-0.5 ${
+                        item.active === false
+                          ? "bg-red-50 text-red-600"
+                          : "bg-emerald-50 text-emerald-700"
+                      }`}
+                    >
+                      {item.active === false ? "Disabled" : "Live"}
+                    </span>
+                    {item.bestseller && (
+                      <span className="text-[10px] font-medium rounded-full px-2 py-0.5 bg-amber-50 text-amber-700">
+                        Bestseller
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2 mt-0.5 md:hidden">
                     <span className="text-xs text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">
                       {item.category}
@@ -153,7 +253,28 @@ const List = ({ token }) => {
                 </p>
 
                 {/* Actions */}
-                <div className="flex justify-end md:justify-center gap-2">
+                <div className="flex justify-end md:justify-end gap-2 col-span-2 sm:col-span-1">
+                  <button
+                    onClick={() => toggleActive(item)}
+                    className={`px-2.5 h-9 rounded-lg border text-[11px] font-medium ${
+                      item.active === false
+                        ? "border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                        : "border-gray-200 text-gray-500 hover:bg-gray-50"
+                    }`}
+                  >
+                    {item.active === false ? "Enable" : "Disable"}
+                  </button>
+                  <button
+                    onClick={() => toggleBestseller(item)}
+                    aria-label="Toggle bestseller"
+                    className={`flex h-9 w-9 items-center justify-center rounded-lg border ${
+                      item.bestseller
+                        ? "border-amber-200 bg-amber-50 text-amber-600"
+                        : "border-gray-200 text-gray-400 hover:bg-gray-50"
+                    }`}
+                  >
+                    ★
+                  </button>
                   <button
                     onClick={() => handleEdit(item)}
                     aria-label={`Edit ${item.name}`}

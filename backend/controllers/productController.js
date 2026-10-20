@@ -1,5 +1,8 @@
 import { v2 as cloudinary } from "cloudinary";
 import productModel from "../models/productModel.js";
+import inventoryLogModel from "../models/inventoryLogModel.js";
+import categoryModel from "../models/categoryModel.js";
+import { ensureDefaultCategories } from "./categoryController.js";
 
 // function for add product
 const addProduct = async (req, res) => {
@@ -12,6 +15,7 @@ const addProduct = async (req, res) => {
       subCategory,
       sizes,
       bestseller,
+      stock,
     } = req.body;
 
     const image1 = req.files.image1 && req.files.image1[0];
@@ -32,6 +36,16 @@ const addProduct = async (req, res) => {
       }),
     );
 
+    const parsedSizes = JSON.parse(sizes);
+    const parsedStock = stock
+      ? JSON.parse(stock)
+          .filter((row) => parsedSizes.includes(row.size))
+          .map((row) => ({
+            size: row.size,
+            quantity: Math.max(0, Number(row.quantity) || 0),
+          }))
+      : [];
+
     const productData = {
       name,
       description,
@@ -39,13 +53,31 @@ const addProduct = async (req, res) => {
       price: Number(price),
       subCategory,
       bestseller: bestseller === "true" ? true : false,
-      sizes: JSON.parse(sizes),
+      sizes: parsedSizes,
+      stock: parsedStock,
       image: imagesUrl,
       date: Date.now(),
     };
 
     const product = new productModel(productData);
     await product.save();
+
+    if (parsedStock.length) {
+      await inventoryLogModel.insertMany(
+        parsedStock.map((row) => ({
+          productId: String(product._id),
+          productName: product.name,
+          size: row.size,
+          action: "set",
+          quantity: row.quantity,
+          previousQty: 0,
+          newQty: row.quantity,
+          note: "Opening stock",
+          source: "manual",
+          date: Date.now(),
+        })),
+      );
+    }
 
     res.json({ success: true, message: "Product Added" });
   } catch (error) {
@@ -57,8 +89,71 @@ const addProduct = async (req, res) => {
 // function for list product
 const listProducts = async (req, res) => {
   try {
-    const products = await productModel.find({});
+    await ensureDefaultCategories();
+    const [products, categories] = await Promise.all([
+      productModel.find({ active: { $ne: false } }),
+      categoryModel.find({ active: true }),
+    ]);
+    const allowed = new Set();
+    categories.forEach((category) => {
+      category.subCategories.forEach((sub) => {
+        if (sub.active) allowed.add(`${category.name}::${sub.name}`);
+      });
+    });
+    res.json({
+      success: true,
+      products: products.filter((product) =>
+        allowed.has(`${product.category}::${product.subCategory}`),
+      ),
+    });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
+const adminListProducts = async (req, res) => {
+  try {
+    const products = await productModel.find({}).sort({ date: -1 });
     res.json({ success: true, products });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
+const setProductActive = async (req, res) => {
+  try {
+    const product = await productModel.findById(req.body.id);
+    if (!product) return res.json({ success: false, message: "Product not found" });
+    if (typeof req.body.active === "boolean") {
+      product.active = req.body.active;
+    } else {
+      product.active = product.active === false;
+    }
+    await product.save();
+    res.json({
+      success: true,
+      message: product.active ? "Product enabled" : "Product disabled",
+      product,
+    });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
+const setBestseller = async (req, res) => {
+  try {
+    const product = await productModel.findById(req.body.id);
+    if (!product) return res.json({ success: false, message: "Product not found" });
+    product.bestseller = !product.bestseller;
+    await product.save();
+    res.json({
+      success: true,
+      message: product.bestseller ? "Marked as bestseller" : "Removed from bestsellers",
+      product,
+    });
   } catch (error) {
     console.log(error);
     res.json({ success: false, message: error.message });
@@ -139,6 +234,22 @@ const updateProduct = async (req, res) => {
     // Remove empty image slots
     images = images.filter((img) => img);
 
+    const nextSizes = sizes
+      ? Array.isArray(sizes)
+        ? sizes
+        : JSON.parse(sizes)
+      : product.sizes;
+
+    let nextStock = product.stock || [];
+    if (sizes && nextStock.length) {
+      const kept = nextStock.filter((row) => nextSizes.includes(row.size));
+      const known = new Set(kept.map((row) => row.size));
+      nextSizes.forEach((size) => {
+        if (!known.has(size)) kept.push({ size, quantity: 0 });
+      });
+      nextStock = kept;
+    }
+
     const updatedProduct = await productModel.findByIdAndUpdate(
       id,
       {
@@ -147,9 +258,7 @@ const updateProduct = async (req, res) => {
         ...(price && { price: Number(price) }),
         ...(category && { category }),
         ...(subCategory && { subCategory }),
-        ...(sizes && {
-          sizes: Array.isArray(sizes) ? sizes : JSON.parse(sizes),
-        }),
+        ...(sizes && { sizes: nextSizes, stock: nextStock }),
         ...(bestseller !== undefined && {
           bestseller: bestseller === "true",
         }),
@@ -178,6 +287,9 @@ const updateProduct = async (req, res) => {
 
 export {
   listProducts,
+  adminListProducts,
+  setProductActive,
+  setBestseller,
   addProduct,
   removeProduct,
   singleProduct,

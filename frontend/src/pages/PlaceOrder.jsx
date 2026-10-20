@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import Title from "../components/Title";
 import CartTotal from "../components/CartTotal";
 import { assets } from "../assets/assets";
@@ -32,6 +32,13 @@ const FloatingInput = ({ id, label, type = "text", maxLength, ...rest }) => (
 const PlaceOrder = () => {
   const navigate = useNavigate();
   const [method, setMethod] = useState("cod");
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [useWallet, setUseWallet] = useState(false);
+  const [couponInput, setCouponInput] = useState("");
+  const [coupon, setCoupon] = useState(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [deliveryQuote, setDeliveryQuote] = useState(null);
+  const [deliverySpeed, setDeliverySpeed] = useState("standard");
 
   const {
     backendUrl,
@@ -39,8 +46,8 @@ const PlaceOrder = () => {
     cartItems,
     setCartItems,
     getCartAmount,
-    delivery_fee,
     products,
+    currency,
   } = useContext(ShopContext);
 
   const [formData, setFormData] = useState({
@@ -60,6 +67,95 @@ const PlaceOrder = () => {
     const value = event.target.value;
     setFormData((data) => ({ ...data, [name]: value }));
   };
+
+  useEffect(() => {
+    if (!token) return;
+    axios
+      .get(backendUrl + "/api/user/wallet", { headers: { token } })
+      .then((response) => {
+        if (response.data.success) setWalletBalance(response.data.balance || 0);
+      })
+      .catch(() => {});
+  }, [token, backendUrl]);
+
+  const pincodeReady = formData.zipcode.replace(/\D/g, "").length === 6;
+
+  useEffect(() => {
+    if (!pincodeReady) {
+      setDeliveryQuote(null);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      axios
+        .post(backendUrl + "/api/delivery/quote", {
+          subtotal: getCartAmount(),
+          pincode: formData.zipcode,
+          state: formData.state,
+          speed: deliverySpeed,
+        })
+        .then((response) => {
+          if (cancelled || !response.data.success) return;
+          const standardCharge = Number(response.data.standardCharge);
+          const fastExtra = Number(response.data.fastExtra);
+          setDeliveryQuote({
+            standardCharge: Number.isFinite(standardCharge) ? standardCharge : 0,
+            fastExtra: Number.isFinite(fastExtra) ? fastExtra : 0,
+            fastAvailable: Boolean(response.data.fastAvailable),
+            reason: response.data.reason || "",
+          });
+        })
+        .catch(() => {});
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [backendUrl, cartItems, products, formData.zipcode, formData.state, pincodeReady, deliverySpeed]);
+
+  const applyCoupon = async () => {
+    const code = couponInput.trim();
+    if (!code) {
+      toast.error("Enter a coupon code");
+      return;
+    }
+    setCouponLoading(true);
+    try {
+      const response = await axios.post(backendUrl + "/api/coupon/check", {
+        code,
+        subtotal: getCartAmount(),
+      });
+      if (response.data.success && response.data.discount > 0) {
+        setCoupon({ code: response.data.code, discount: response.data.discount });
+        toast.success(response.data.message);
+      } else if (response.data.success) {
+        toast.error("This coupon does not reduce the total");
+      } else {
+        setCoupon(null);
+        toast.error(response.data.message);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Could not apply coupon");
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const discount = coupon?.discount || 0;
+  const shippingReady = pincodeReady && deliveryQuote !== null;
+  const fastSelected =
+    shippingReady && deliveryQuote.fastAvailable && deliverySpeed === "fast";
+  const shippingFee = shippingReady
+    ? deliveryQuote.standardCharge + (fastSelected ? deliveryQuote.fastExtra : 0)
+    : 0;
+  const deliveryNote = shippingReady
+    ? fastSelected
+      ? `Fast delivery adds ${currency}${deliveryQuote.fastExtra}.00`
+      : deliveryQuote.reason
+    : "";
+  const orderTotal = Math.max(0, getCartAmount() + shippingFee - discount);
+  const walletApplied = useWallet ? Math.min(walletBalance, orderTotal) : 0;
+  const payableNow = Math.max(orderTotal - walletApplied, 0);
 
   const initPay = (order, userId) => {
     const options = {
@@ -144,7 +240,10 @@ const PlaceOrder = () => {
       let orderData = {
         address: formData,
         items: orderItems,
-        amount: getCartAmount() + delivery_fee,
+        amount: Math.max(0, getCartAmount() + shippingFee - (coupon?.discount || 0)),
+        useWallet,
+        couponCode: coupon?.code || "",
+        deliverySpeed: fastSelected ? "fast" : "standard",
       };
 
       switch (method) {
@@ -170,6 +269,11 @@ const PlaceOrder = () => {
             { headers: { token } },
           );
           if (responseStripe.data.success) {
+            if (responseStripe.data.paidByWallet) {
+              setCartItems({});
+              navigate("/orders");
+              break;
+            }
             const { session_url } = responseStripe.data;
             window.location.replace(session_url);
           } else {
@@ -185,6 +289,11 @@ const PlaceOrder = () => {
             { headers: { token } },
           );
           if (responseRazorpay.data.success) {
+            if (responseRazorpay.data.paidByWallet) {
+              setCartItems({});
+              navigate("/orders");
+              break;
+            }
             console.log(responseRazorpay.data.order);
             initPay(responseRazorpay.data.order);
           } else {
@@ -302,11 +411,133 @@ const PlaceOrder = () => {
           onChange={onChangeHandler}
           required
         />
+
+        <div className="mt-1 flex items-center justify-between gap-4 rounded-lg border border-gray-200 bg-white px-4 py-3.5">
+          <div>
+            <p className="text-sm font-medium text-gray-800">Shipping charges</p>
+            <p className="mt-0.5 text-xs text-gray-500 leading-relaxed">
+              {shippingReady
+                ? deliveryNote || "Based on your pincode"
+                : "Enter your pincode to see the shipping charge"}
+            </p>
+          </div>
+          <p className="text-base font-semibold text-gray-900 tabular-nums whitespace-nowrap">
+            {!shippingReady
+              ? `${currency}0.00`
+              : shippingFee === 0
+                ? "Free"
+                : `${currency}${shippingFee}.00`}
+          </p>
+        </div>
+
+        {shippingReady && deliveryQuote.fastAvailable && (
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setDeliverySpeed("standard")}
+              className={`rounded-lg border px-3 py-3 text-left ${
+                !fastSelected
+                  ? "border-gray-900 bg-gray-50"
+                  : "border-gray-200 bg-white"
+              }`}
+            >
+              <span className="block text-sm font-medium text-gray-800">Standard</span>
+              <span className="block text-xs text-gray-500 mt-1">
+                {deliveryQuote.standardCharge === 0
+                  ? "Free"
+                  : `${currency}${deliveryQuote.standardCharge}.00`}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setDeliverySpeed("fast")}
+              className={`rounded-lg border px-3 py-3 text-left ${
+                fastSelected
+                  ? "border-gray-900 bg-gray-50"
+                  : "border-gray-200 bg-white"
+              }`}
+            >
+              <span className="block text-sm font-medium text-gray-800">Fast delivery</span>
+              <span className="block text-xs text-gray-500 mt-1">
+                +{currency}
+                {deliveryQuote.fastExtra}.00
+              </span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── Right: Order Summary + Payment ── */}
       <div className="w-full sm:min-w-80 sm:max-w-[380px]">
-        <CartTotal />
+        <CartTotal
+          discount={discount}
+          deliveryFee={shippingFee}
+          shippingReady={shippingReady}
+          note={
+            shippingReady
+              ? deliveryNote
+              : "Enter your pincode to see the shipping charge"
+          }
+        />
+
+        <div className="mt-4 flex gap-2">
+          <input
+            value={couponInput}
+            onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+            placeholder="Coupon code"
+            className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm uppercase"
+          />
+          {coupon ? (
+            <button
+              type="button"
+              onClick={() => {
+                setCoupon(null);
+                setCouponInput("");
+              }}
+              className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider border border-gray-200 rounded-lg"
+            >
+              Remove
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={applyCoupon}
+              disabled={couponLoading}
+              className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider bg-gray-900 text-white rounded-lg disabled:opacity-60"
+            >
+              {couponLoading ? "..." : "Apply"}
+            </button>
+          )}
+        </div>
+        {coupon && (
+          <p className="mt-2 text-xs text-emerald-700">
+            {coupon.code} saves {currency}
+            {coupon.discount}
+          </p>
+        )}
+
+        {walletBalance > 0 && (
+          <label className="mt-6 flex items-start gap-3 rounded-lg border border-gray-200 p-3.5 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={useWallet}
+              onChange={(e) => setUseWallet(e.target.checked)}
+              className="mt-1"
+            />
+            <span>
+              <span className="block text-sm font-medium text-gray-800">
+                Use wallet balance
+              </span>
+              <span className="block text-xs text-gray-500 mt-0.5">
+                Available {currency}
+                {walletBalance}
+                {useWallet
+                  ? ` · ${currency}${walletApplied} applied · pay ${currency}${payableNow}`
+                  : ""}
+              </span>
+            </span>
+          </label>
+        )}
 
         {/* Payment Method */}
         <div className="mt-10">

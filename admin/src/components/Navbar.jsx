@@ -30,9 +30,9 @@ const Navbar = ({ setToken, sidebarOpen, setSidebarOpen }) => {
         </button>
 
         <img
-          className="h-9 w-auto object-contain"
+          className="h-12 w-12 object-contain"
           src={assets.logo}
-          alt="Logo"
+          alt="Charu Garments"
         />
       </div>
 

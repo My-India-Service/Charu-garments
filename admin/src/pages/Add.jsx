@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { assets } from "../assets/assets";
 import axios from "axios";
 import { backendUrl } from "../App";
@@ -7,8 +7,8 @@ import { toast } from "react-hot-toast";
 const TOPWEAR_SIZES = ["S", "M", "L", "XL", "XXL"];
 const BOTTOMWEAR_SIZES = ["28", "30", "32", "34", "36"];
 
-const getSizes = (subCategory) =>
-  subCategory === "Bottomwear" ? BOTTOMWEAR_SIZES : TOPWEAR_SIZES;
+const getSizes = (sizeType) =>
+  sizeType === "bottom" ? BOTTOMWEAR_SIZES : TOPWEAR_SIZES;
 
 const ImageUpload = ({ id, image, onChange }) => (
   <label
@@ -75,24 +75,75 @@ const Add = ({ token }) => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
-  const [category, setCategory] = useState("Men");
-  const [subCategory, setSubCategory] = useState("Topwear");
+  const [category, setCategory] = useState("");
+  const [subCategory, setSubCategory] = useState("");
+  const [categories, setCategories] = useState([]);
   const [bestseller, setBestseller] = useState(false);
   const [sizes, setSizes] = useState([]);
+  const [stockQty, setStockQty] = useState({});
   const [loading, setLoading] = useState(false);
+
+  const activeCategories = categories.filter((item) => item.active !== false);
+  const selectedCategory = activeCategories.find((item) => item.name === category);
+  const activeSubs = (selectedCategory?.subCategories || []).filter(
+    (item) => item.active !== false,
+  );
+  const sizeType =
+    activeSubs.find((item) => item.name === subCategory)?.sizeType || "apparel";
+
+  useEffect(() => {
+    axios
+      .get(backendUrl + "/api/category/admin", { headers: { token } })
+      .then((response) => {
+        if (!response.data.success) return;
+        const rows = response.data.categories || [];
+        setCategories(rows);
+        const first = rows.find((item) => item.active !== false);
+        const firstSub = first?.subCategories?.find((item) => item.active !== false);
+        if (first) setCategory(first.name);
+        if (firstSub) setSubCategory(firstSub.name);
+      })
+      .catch(() => toast.error("Could not load categories"));
+  }, [token]);
+
+  const handleCategoryChange = (e) => {
+    const nextName = e.target.value;
+    setCategory(nextName);
+    const next = categories.find((item) => item.name === nextName);
+    const firstSub = next?.subCategories?.find((item) => item.active !== false);
+    setSubCategory(firstSub?.name || "");
+    setSizes([]);
+    setStockQty({});
+  };
 
   // When subCategory changes, clear sizes that don't exist in the new set
   const handleSubCategoryChange = (e) => {
     const newSub = e.target.value;
     setSubCategory(newSub);
-    const validSizes = getSizes(newSub);
+    const nextType =
+      activeSubs.find((item) => item.name === newSub)?.sizeType || "apparel";
+    const validSizes = getSizes(nextType);
     setSizes((prev) => prev.filter((s) => validSizes.includes(s)));
+    setStockQty((prev) =>
+      Object.fromEntries(
+        Object.entries(prev).filter(([size]) => validSizes.includes(size)),
+      ),
+    );
   };
 
   const toggleSize = (size) =>
-    setSizes((prev) =>
-      prev.includes(size) ? prev.filter((s) => s !== size) : [...prev, size],
-    );
+    setSizes((prev) => {
+      if (prev.includes(size)) {
+        setStockQty((qty) => {
+          const next = { ...qty };
+          delete next[size];
+          return next;
+        });
+        return prev.filter((s) => s !== size);
+      }
+      setStockQty((qty) => ({ ...qty, [size]: qty[size] ?? "" }));
+      return [...prev, size];
+    });
 
   const onSubmitHandler = async (e) => {
     e.preventDefault();
@@ -101,10 +152,17 @@ const Add = ({ token }) => {
       !name ||
       !description ||
       !price ||
+      !category ||
+      !subCategory ||
       sizes.length === 0 ||
       (!image1 && !image2 && !image3 && !image4)
     ) {
       toast.error("Please fill all required fields and add at least one image");
+      return;
+    }
+
+    if (sizes.some((size) => stockQty[size] === "" || Number(stockQty[size]) < 0)) {
+      toast.error("Enter a stock quantity for every selected size");
       return;
     }
 
@@ -118,6 +176,15 @@ const Add = ({ token }) => {
       formData.append("subCategory", subCategory);
       formData.append("bestseller", bestseller);
       formData.append("sizes", JSON.stringify(sizes));
+      formData.append(
+        "stock",
+        JSON.stringify(
+          sizes.map((size) => ({
+            size,
+            quantity: Number(stockQty[size]),
+          })),
+        ),
+      );
       image1 && formData.append("image1", image1);
       image2 && formData.append("image2", image2);
       image3 && formData.append("image3", image3);
@@ -134,10 +201,11 @@ const Add = ({ token }) => {
         setName("");
         setDescription("");
         setPrice("");
-        setCategory("Men");
-        setSubCategory("Topwear");
+        setCategory(activeCategories[0]?.name || "");
+        setSubCategory(activeSubs[0]?.name || "");
         setBestseller(false);
         setSizes([]);
+        setStockQty({});
         setImage1(false);
         setImage2(false);
         setImage3(false);
@@ -158,7 +226,7 @@ const Add = ({ token }) => {
   const labelClass =
     "block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5";
 
-  const availableSizes = getSizes(subCategory);
+  const availableSizes = getSizes(sizeType);
 
   return (
     <div className="w-full px-2 sm:px-4">
@@ -232,11 +300,13 @@ const Add = ({ token }) => {
                 id="category"
                 className={inputClass}
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                onChange={handleCategoryChange}
               >
-                <option value="Men">Men</option>
-                <option value="Women">Women</option>
-                <option value="Kids">Kids</option>
+                {activeCategories.map((item) => (
+                  <option key={item._id} value={item.name}>
+                    {item.name}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -250,9 +320,11 @@ const Add = ({ token }) => {
                 value={subCategory}
                 onChange={handleSubCategoryChange}
               >
-                <option value="Topwear">Topwear</option>
-                <option value="Bottomwear">Bottomwear</option>
-                <option value="Winterwear">Winterwear</option>
+                {activeSubs.map((item) => (
+                  <option key={item.name} value={item.name}>
+                    {item.name}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -277,7 +349,7 @@ const Add = ({ token }) => {
         <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 shadow-sm">
           <p className={labelClass}>Available Sizes</p>
           <p className="text-xs text-gray-400 mb-3">
-            {subCategory === "Bottomwear"
+            {sizeType === "bottom"
               ? "Waist sizes in inches"
               : "Select all sizes in stock"}
           </p>
@@ -298,6 +370,27 @@ const Add = ({ token }) => {
               </button>
             ))}
           </div>
+          {sizes.length > 0 && (
+            <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {sizes.map((size) => (
+                <label key={size} className="block">
+                  <span className="text-xs font-medium text-gray-500">
+                    {size} stock
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={stockQty[size] ?? ""}
+                    onChange={(e) =>
+                      setStockQty((qty) => ({ ...qty, [size]: e.target.value }))
+                    }
+                    className={`${inputClass} mt-1`}
+                  />
+                </label>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Bestseller + Submit */}

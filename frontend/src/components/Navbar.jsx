@@ -13,6 +13,7 @@ import {
   Package,
   LogOut,
   UserCircle,
+  Wallet,
 } from "lucide-react";
 
 const Navbar = () => {
@@ -53,7 +54,7 @@ const Navbar = () => {
       <div className="flex items-center justify-between py-5 sm:py-6 font-medium border-b border-gray-100">
         {/* Logo */}
         <Link to="/">
-          <img src={assets.logo} className="w-20 sm:w-24" alt="Logo" />
+          <img src={assets.logo} className="w-16 h-16 sm:w-20 sm:h-20 object-contain" alt="Charu Garments" />
         </Link>
 
         {/* Desktop Nav Links */}
@@ -137,6 +138,17 @@ const Navbar = () => {
                     />
                     Orders
                   </Link>
+                  <Link
+                    to="/wallet"
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-gray-500 hover:text-black hover:bg-gray-50 transition-colors"
+                  >
+                    <Wallet
+                      size={14}
+                      strokeWidth={1.75}
+                      className="text-gray-400"
+                    />
+                    Wallet
+                  </Link>
                   <div className="my-1 mx-4 border-t border-gray-100" />
                   <button
                     onClick={logout}
@@ -198,7 +210,7 @@ const Navbar = () => {
         {/* Drawer Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <Link to="/" onClick={() => setVisible(false)}>
-            <img src={assets.logo} className="w-20" alt="Logo" />
+            <img src={assets.logo} className="w-16 h-16 object-contain" alt="Charu Garments" />
           </Link>
           <button
             onClick={() => setVisible(false)}
@@ -275,6 +287,18 @@ const Navbar = () => {
           >
             <Package size={15} strokeWidth={1.75} className="text-gray-400" />
             Orders
+          </Link>
+
+          <Link
+            to="/wallet"
+            onClick={(e) => {
+              handleOrdersClick(e);
+              setVisible(false);
+            }}
+            className="flex items-center gap-3 px-3 py-3 text-sm text-gray-500 hover:text-black hover:bg-gray-50 rounded-lg transition-colors"
+          >
+            <Wallet size={15} strokeWidth={1.75} className="text-gray-400" />
+            Wallet
           </Link>
 
           <div className="mx-3 my-1 border-t border-gray-100" />

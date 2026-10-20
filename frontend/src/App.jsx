@@ -14,6 +14,7 @@ import PlaceOrder from "./pages/PlaceOrder";
 import Product from "./pages/Product";
 import Verify from "./pages/Verify";
 import Profile from "./pages/Profile";
+import WalletPage from "./pages/Wallet";
 import Navbar from "./components/Navbar";
 import SearchBar from "./components/SearchBar";
 import Footer from "./components/Footer";
@@ -48,6 +49,7 @@ const App = () => {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/profile" element={<Profile />} />;
+            <Route path="/wallet" element={<WalletPage />} />
             <Route path="/collection" element={<Collection />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />

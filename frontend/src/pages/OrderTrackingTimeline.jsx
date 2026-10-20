@@ -91,7 +91,7 @@ function getDescriptionSegments(key, time, order) {
         d(a.street),
         s(", "),
         d(a.city),
-        s(". Thank you for shopping with ZYRA."),
+        s(". Thank you for shopping with Charu Garments."),
       ];
     default:
       return [];
@@ -109,21 +109,21 @@ function buildSteps(order) {
       key: "Order Placed",
       Icon: ClipboardCheck,
       label: "Order placed",
-      location: "ZYRA Store, Bhimavaram, Andhra Pradesh",
+      location: "Charu Garments Store, Bhimavaram, Andhra Pradesh",
       _fallbackTime: createdAt,
     },
     {
       key: "Packing",
       Icon: Package,
       label: "Packing",
-      location: "ZYRA Warehouse, Bhimavaram",
+      location: "Charu Garments Warehouse, Bhimavaram",
       _fallbackTime: addMinutes(createdAt, 20),
     },
     {
       key: "Shipped",
       Icon: Truck,
       label: "Shipped",
-      location: "ZYRA Dispatch Center, Bhimavaram",
+      location: "Charu Garments Dispatch Center, Bhimavaram",
       _fallbackTime: addMinutes(createdAt, 120),
     },
     {
@@ -384,6 +384,12 @@ export function OrderTrackingTimeline({ order, currentIndex }) {
           <span className="inline-flex items-center flex-shrink-0 rounded-full font-medium whitespace-nowrap px-2.5 py-1 text-[11px] sm:text-xs bg-slate-100 text-slate-900 border border-slate-200">
             Step {currentIndex + 1} of {stepsResolved.length}
           </span>
+        </div>
+      )}
+
+      {order.status === "Out for delivery" && order.deliveryOtp && (
+        <div className="mb-5">
+          <OtpCard otp={order.deliveryOtp} />
         </div>
       )}
 

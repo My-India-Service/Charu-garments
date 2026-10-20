@@ -12,7 +12,7 @@ const NewsletterBox = () => {
       origin: { y: 0.7 },
     });
 
-    toast.success("You're in! Welcome to ZYRA.", {
+    toast.success("You're in! Welcome to Charu Garments.", {
       duration: 4500,
     });
 
@@ -32,13 +32,13 @@ const NewsletterBox = () => {
 
       {/* Headline */}
       <p className="text-2xl sm:text-3xl font-medium text-gray-800 leading-snug">
-        Join the ZYRA Community
+        Join the Charu Garments Community
       </p>
 
       {/* Subtext */}
       <p className="mt-3 mx-auto max-w-sm text-sm text-gray-400 leading-relaxed">
         Stay updated with the latest fashion trends, exclusive offers, and new
-        arrivals from ZYRA.
+        arrivals from Charu Garments.
       </p>
 
       {/* Form */}

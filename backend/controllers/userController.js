@@ -2,6 +2,7 @@ import validator from "validator";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import userModel from "../models/userModel.js";
+import walletTransactionModel from "../models/walletTransactionModel.js";
 
 const createToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET);
@@ -161,6 +162,24 @@ const getUserProfile = async (req, res) => {
   }
 };
 
+const getWallet = async (req, res) => {
+  try {
+    const user = await userModel.findById(req.userId).select("walletBalance");
+    if (!user) return res.json({ success: false, message: "User not found" });
+    const transactions = await walletTransactionModel
+      .find({ userId: String(req.userId) })
+      .sort({ date: -1 })
+      .limit(40);
+    res.json({
+      success: true,
+      balance: user.walletBalance || 0,
+      transactions,
+    });
+  } catch (err) {
+    res.json({ success: false, message: err.message });
+  }
+};
+
 const updateUserProfile = async (req, res) => {
   try {
     const { name, phone, location } = req.body;
@@ -180,4 +199,5 @@ export {
   changePassword,
   getUserProfile,
   updateUserProfile,
+  getWallet,
 };

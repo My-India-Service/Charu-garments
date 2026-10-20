@@ -1,11 +1,17 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { PlusCircle, List, ClipboardList, X } from "lucide-react";
+import { PlusCircle, List, ClipboardList, Boxes, Undo2, Tags, Megaphone, Truck, Settings, X } from "lucide-react";
 
 const navItems = [
   { to: "/add", icon: PlusCircle, label: "Add Items" },
   { to: "/list", icon: List, label: "List Items" },
+  { to: "/categories", icon: Tags, label: "Categories" },
+  { to: "/inventory", icon: Boxes, label: "Inventory" },
   { to: "/orders", icon: ClipboardList, label: "Orders" },
+  { to: "/returns", icon: Undo2, label: "Returns" },
+  { to: "/offers", icon: Megaphone, label: "Offers" },
+  { to: "/delivery", icon: Truck, label: "Delivery" },
+  { to: "/settings", icon: Settings, label: "Settings" },
 ];
 
 const Sidebar = ({ isOpen, onClose }) => {

@@ -6,8 +6,8 @@ import { toast } from "react-hot-toast";
 const TOPWEAR_SIZES = ["S", "M", "L", "XL", "XXL"];
 const BOTTOMWEAR_SIZES = ["28", "30", "32", "34", "36"];
 
-const getSizes = (subCategory) =>
-  subCategory === "Bottomwear" ? BOTTOMWEAR_SIZES : TOPWEAR_SIZES;
+const getSizes = (sizeType) =>
+  sizeType === "bottom" ? BOTTOMWEAR_SIZES : TOPWEAR_SIZES;
 
 // ── ImageSlot ────────────────────────────────────────────────────────────────
 const ImageSlot = ({
@@ -198,15 +198,57 @@ const EditProductModal = ({ product, token, onClose, fetchList }) => {
     removeImages: [],
   });
   const [editLoading, setEditLoading] = useState(false);
+  const [categories, setCategories] = useState([]);
   const modalRef = useRef(null);
+
+  const activeCategories = categories.filter((item) => item.active !== false);
+  const categoryOptions = activeCategories.some((item) => item.name === editForm.category)
+    ? activeCategories
+    : [
+        ...activeCategories,
+        { _id: "current", name: editForm.category, active: true, subCategories: editForm.subCategory ? [{ name: editForm.subCategory, active: true, sizeType: editForm.subCategory === "Bottomwear" ? "bottom" : "apparel" }] : [] },
+      ];
+  const selectedCategory =
+    categories.find((item) => item.name === editForm.category) || categoryOptions[0];
+  const activeSubs = (selectedCategory?.subCategories || []).filter(
+    (item) => item.active !== false || item.name === editForm.subCategory,
+  );
+  const sizeType =
+    activeSubs.find((item) => item.name === editForm.subCategory)?.sizeType ||
+    (editForm.subCategory === "Bottomwear" ? "bottom" : "apparel");
+
+  useEffect(() => {
+    axios
+      .get(backendUrl + "/api/category/admin", { headers: { token } })
+      .then((response) => {
+        if (response.data.success) setCategories(response.data.categories || []);
+      })
+      .catch(() => {});
+  }, [token]);
 
   const setField = (key) => (val) => setEditForm((f) => ({ ...f, [key]: val }));
   const onFieldChange = (key) => (e) => setField(key)(e.target.value);
 
   // When subCategory changes, clear sizes incompatible with new set
+  const handleCategoryChange = (e) => {
+    const nextName = e.target.value;
+    const next = categories.find((item) => item.name === nextName);
+    const firstSub = next?.subCategories?.find((item) => item.active !== false);
+    const nextType = firstSub?.sizeType || "apparel";
+    const validSizes = getSizes(nextType);
+    setEditForm((f) => ({
+      ...f,
+      category: nextName,
+      subCategory: firstSub?.name || "",
+      sizes: f.sizes.filter((s) => validSizes.includes(s)),
+    }));
+  };
+
   const handleSubCategoryChange = (e) => {
     const newSub = e.target.value;
-    const validSizes = getSizes(newSub);
+    const nextType =
+      activeSubs.find((item) => item.name === newSub)?.sizeType || "apparel";
+    const validSizes = getSizes(nextType);
     setEditForm((f) => ({
       ...f,
       subCategory: newSub,
@@ -305,7 +347,7 @@ const EditProductModal = ({ product, token, onClose, fetchList }) => {
     return () => document.removeEventListener("mousedown", handler);
   }, [onClose]);
 
-  const availableSizes = getSizes(editForm.subCategory);
+  const availableSizes = getSizes(sizeType);
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm">
@@ -405,12 +447,14 @@ const EditProductModal = ({ product, token, onClose, fetchList }) => {
               </label>
               <select
                 value={editForm.category}
-                onChange={onFieldChange("category")}
+                onChange={handleCategoryChange}
                 className="w-full rounded-2xl border border-gray-200 px-3 sm:px-4 py-3.5 text-[15px] text-gray-900 bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-all"
               >
-                <option value="Men">Men</option>
-                <option value="Women">Women</option>
-                <option value="Kids">Kids</option>
+                {categoryOptions.map((item) => (
+                  <option key={item._id || item.name} value={item.name}>
+                    {item.name}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
@@ -422,9 +466,11 @@ const EditProductModal = ({ product, token, onClose, fetchList }) => {
                 onChange={handleSubCategoryChange}
                 className="w-full rounded-2xl border border-gray-200 px-3 sm:px-4 py-3.5 text-[15px] text-gray-900 bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-all"
               >
-                <option value="Topwear">Topwear</option>
-                <option value="Bottomwear">Bottomwear</option>
-                <option value="Winterwear">Winterwear</option>
+                {activeSubs.map((item) => (
+                  <option key={item.name} value={item.name}>
+                    {item.name}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -450,7 +496,7 @@ const EditProductModal = ({ product, token, onClose, fetchList }) => {
               Available Sizes
             </label>
             <p className="text-xs text-gray-400 mb-3">
-              {editForm.subCategory === "Bottomwear"
+              {sizeType === "bottom"
                 ? "Waist sizes in inches"
                 : "Select all sizes in stock"}
             </p>

@@ -6,18 +6,41 @@ export const ShopContext = createContext();
 
 const ShopContextProvider = (props) => {
   const currency = "₹";
-  const delivery_fee = 10;
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState([]);
   const [showSearch, setShowSearch] = useState(false);
   const [cartItems, setCartItems] = useState({});
   const [token, setToken] = useState("");
+  const [deliverySettings, setDeliverySettings] = useState({
+    defaultCharge: 10,
+    freeAbove: 0,
+  });
+  const [siteSettings, setSiteSettings] = useState({
+    phone: "+91 9876543201",
+    email: "support@charugarments.com",
+    address: "Bhimavaram, Andhra Pradesh, India",
+  });
+  const delivery_fee = Number(deliverySettings.defaultCharge ?? 10);
+  const freeAbove = Number(deliverySettings.freeAbove || 0);
 
   const addToCart = async (itemId, size) => {
     if (!size) {
       toast.error("Select Product Size");
       return;
+    }
+
+    const product = products.find((item) => item._id === itemId);
+    const stockRows = product?.stock || [];
+    const stockRow = stockRows.find((row) => row.size === size);
+    const nextQty = (cartItems[itemId]?.[size] || 0) + 1;
+    if (stockRows.length && (!stockRow || nextQty > stockRow.quantity)) {
+      toast.error(
+        stockRow && stockRow.quantity > 0
+          ? `Only ${stockRow.quantity} left in size ${size}`
+          : "This size is out of stock",
+      );
+      return false;
     }
 
     let cartData = structuredClone(cartItems);
@@ -50,6 +73,18 @@ const ShopContextProvider = (props) => {
   };
 
   const updateQuantity = async (itemId, size, quantity) => {
+    const product = products.find((item) => item._id === itemId);
+    const stockRows = product?.stock || [];
+    const stockRow = stockRows.find((row) => row.size === size);
+    if (quantity > 0 && stockRows.length && (!stockRow || quantity > stockRow.quantity)) {
+      toast.error(
+        stockRow
+          ? `Only ${stockRow.quantity} left in size ${size}`
+          : "This size is out of stock",
+      );
+      return;
+    }
+
     let cartData = structuredClone(cartItems);
 
     if (quantity <= 0) {
@@ -143,6 +178,21 @@ const ShopContextProvider = (props) => {
   }, []);
 
   useEffect(() => {
+    axios
+      .get(backendUrl + "/api/delivery/settings")
+      .then((response) => {
+        if (response.data.success) setDeliverySettings(response.data.settings);
+      })
+      .catch(() => {});
+    axios
+      .get(backendUrl + "/api/settings")
+      .then((response) => {
+        if (response.data.success) setSiteSettings(response.data.settings);
+      })
+      .catch(() => {});
+  }, [backendUrl]);
+
+  useEffect(() => {
     const savedToken = localStorage.getItem("token");
     if (!token && savedToken) {
       setToken(savedToken);
@@ -161,6 +211,7 @@ const ShopContextProvider = (props) => {
     products,
     currency,
     delivery_fee,
+    freeAbove,
     search,
     setSearch,
     showSearch,
@@ -174,6 +225,7 @@ const ShopContextProvider = (props) => {
     backendUrl,
     setToken,
     token,
+    siteSettings,
   };
 
   return (
