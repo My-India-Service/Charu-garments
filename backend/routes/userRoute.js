@@ -4,6 +4,8 @@ import {
   registerUser,
   adminLogin,
   changePassword,
+  forgotPassword,
+  resetPassword,
   getUserProfile,
   updateUserProfile,
   getWallet,
@@ -16,6 +18,8 @@ userRouter.post("/register", registerUser);
 userRouter.post("/login", loginUser);
 userRouter.post("/admin", adminLogin);
 userRouter.post("/change-password", authUser, changePassword);
+userRouter.post("/forgot-password", forgotPassword);
+userRouter.post("/reset-password", resetPassword);
 userRouter.get("/profile", authUser, getUserProfile);
 userRouter.get("/wallet", authUser, getWallet);
 userRouter.post("/update-profile", authUser, updateUserProfile);

@@ -9,6 +9,8 @@ const userSchema = new mongoose.Schema(
     phone: { type: String, default: "" },
     location: { type: String, default: "" },
     walletBalance: { type: Number, default: 0, min: 0 },
+    resetPasswordToken: { type: String, default: "" },
+    resetPasswordExpires: { type: Number, default: 0 },
   },
   { minimize: false },
 );

@@ -4,6 +4,11 @@ import userModel from "../models/userModel.js";
 import { creditWallet, refundableAmount, roundMoney } from "../utils/wallet.js";
 import { restoreOrderStock, adjustStockEntry } from "../utils/stock.js";
 import productModel from "../models/productModel.js";
+import { queueMail } from "../utils/mail.js";
+import {
+  notifyReturnRequested,
+  notifyReturnUpdated,
+} from "../utils/orderMail.js";
 
 const RETURN_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 const OPEN_STATUSES = ["Requested", "Approved", "Refunded", "Exchanged"];
@@ -145,6 +150,8 @@ const createReturnRequest = async (req, res) => {
       date: Date.now(),
     });
 
+    queueMail(() => notifyReturnRequested(order, request));
+
     res.json({
       success: true,
       message: "Request submitted",
@@ -278,6 +285,9 @@ const updateReturnRequest = async (req, res) => {
     if (adminNote !== undefined) request.adminNote = adminNote;
     request.resolvedAt = Date.now();
     await request.save();
+
+    const mailedOrder = await orderModel.findById(request.orderId);
+    if (mailedOrder) queueMail(() => notifyReturnUpdated(mailedOrder, request));
 
     res.json({ success: true, message: "Request updated", request });
   } catch (error) {

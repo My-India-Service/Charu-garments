@@ -1,8 +1,19 @@
 import validator from "validator";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 import userModel from "../models/userModel.js";
 import walletTransactionModel from "../models/walletTransactionModel.js";
+import { queueMail } from "../utils/mail.js";
+import { sendResetEmail, sendWelcomeEmail } from "../utils/accountMail.js";
+
+const hashResetToken = (token) =>
+  crypto.createHash("sha256").update(token).digest("hex");
+
+const findUserByEmail = (email) => {
+  const safe = String(email).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return userModel.findOne({ email: { $regex: new RegExp(`^${safe}$`, "i") } });
+};
 
 const createToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET);
@@ -83,6 +94,7 @@ const registerUser = async (req, res) => {
     });
 
     const user = await newUser.save();
+    queueMail(() => sendWelcomeEmail(user));
 
     const token = createToken(user._id);
 
@@ -152,9 +164,87 @@ const changePassword = async (req, res) => {
   }
 };
 
+const forgotPassword = async (req, res) => {
+  try {
+    const email = String(req.body.email || "").trim();
+    if (!validator.isEmail(email)) {
+      return res.json({ success: false, message: "Enter a valid email" });
+    }
+
+    const generic = {
+      success: true,
+      message: "If this email is registered, a reset link is on its way.",
+    };
+
+    const user = await findUserByEmail(email);
+    if (!user) return res.json(generic);
+
+    const token = crypto.randomBytes(32).toString("hex");
+    user.resetPasswordToken = hashResetToken(token);
+    user.resetPasswordExpires = Date.now() + 30 * 60 * 1000;
+    await user.save();
+
+    const result = await sendResetEmail(user, token);
+    if (!result?.sent) {
+      user.resetPasswordToken = "";
+      user.resetPasswordExpires = 0;
+      await user.save();
+      return res.json({
+        success: false,
+        message: "We could not send the reset email. Try again in a moment.",
+      });
+    }
+
+    res.json(generic);
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  try {
+    const token = String(req.body.token || "").trim();
+    const password = String(req.body.password || "");
+
+    if (!token) {
+      return res.json({ success: false, message: "Reset link is invalid" });
+    }
+    if (password.length < 8) {
+      return res.json({
+        success: false,
+        message: "Password must be at least 8 characters",
+      });
+    }
+
+    const user = await userModel.findOne({
+      resetPasswordToken: hashResetToken(token),
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+    if (!user) {
+      return res.json({
+        success: false,
+        message: "This reset link is invalid or has expired",
+      });
+    }
+
+    user.password = await bcrypt.hash(password, 10);
+    user.resetPasswordToken = "";
+    user.resetPasswordExpires = 0;
+    await user.save();
+
+    res.json({ success: true, message: "Password updated. You can sign in now." });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
 const getUserProfile = async (req, res) => {
   try {
-    const user = await userModel.findById(req.userId).select("-password");
+    const user = await userModel
+      .findById(req.userId)
+      .select("-password -resetPasswordToken -resetPasswordExpires");
     if (!user) return res.json({ success: false, message: "User not found" });
     res.json({ success: true, user });
   } catch (err) {
@@ -197,6 +287,8 @@ export {
   registerUser,
   adminLogin,
   changePassword,
+  forgotPassword,
+  resetPassword,
   getUserProfile,
   updateUserProfile,
   getWallet,

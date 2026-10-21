@@ -19,6 +19,14 @@ import {
   releaseCoupon,
 } from "../utils/coupon.js";
 import { quoteDelivery } from "../utils/delivery.js";
+import { queueMail } from "../utils/mail.js";
+import {
+  notifyOrderCancelled,
+  notifyOrderPlaced,
+  notifyPaymentFailed,
+  notifyRefunded,
+  notifyStatusChanged,
+} from "../utils/orderMail.js";
 
 // Global variables
 const currency = "inr";
@@ -136,6 +144,7 @@ const placeOrder = async (req, res) => {
     }
 
     await userModel.findByIdAndUpdate(userId, { cartData: {} });
+    queueMail(() => notifyOrderPlaced(newOrder));
 
     res.json({
       success: true,
@@ -189,6 +198,7 @@ const placeOrderStripe = async (req, res) => {
 
     if (payable === 0) {
       await userModel.findByIdAndUpdate(userId, { cartData: {} });
+      queueMail(() => notifyOrderPlaced(newOrder));
       return res.json({ success: true, paidByWallet: true });
     }
 
@@ -260,17 +270,26 @@ const verifyStripe = async (req, res) => {
     const userId = req.userId;
 
     if (success === "true") {
-      await orderModel.findByIdAndUpdate(orderId, {
-        payment: true,
-        status: "Order Placed", // Ensure status is consistent
-      });
+      const paidOrder = await orderModel.findByIdAndUpdate(
+        orderId,
+        {
+          payment: true,
+          status: "Order Placed",
+        },
+        { new: true },
+      );
 
       await userModel.findByIdAndUpdate(userId, { cartData: {} });
+      if (paidOrder) queueMail(() => notifyOrderPlaced(paidOrder));
 
       res.json({ success: true });
     } else {
       const order = await orderModel.findById(orderId);
-      if (order) await releaseHeldOrder(order);
+      if (order) {
+        const snapshot = order.toObject();
+        queueMail(() => notifyPaymentFailed(snapshot));
+        await releaseHeldOrder(order);
+      }
       res.json({ success: false });
     }
   } catch (error) {
@@ -319,6 +338,7 @@ const placeOrderRazorpay = async (req, res) => {
 
     if (payable === 0) {
       await userModel.findByIdAndUpdate(userId, { cartData: {} });
+      queueMail(() => notifyOrderPlaced(newOrder));
       return res.json({ success: true, paidByWallet: true });
     }
 
@@ -365,12 +385,17 @@ const verifyRazorpay = async (req, res) => {
     const orderInfo = await razorpayInstance.orders.fetch(razorpay_order_id);
 
     if (orderInfo.status === "paid") {
-      await orderModel.findByIdAndUpdate(orderInfo.receipt, {
-        payment: true,
-        status: "Order Placed",
-      });
+      const paidOrder = await orderModel.findByIdAndUpdate(
+        orderInfo.receipt,
+        {
+          payment: true,
+          status: "Order Placed",
+        },
+        { new: true },
+      );
 
       await userModel.findByIdAndUpdate(userId, { cartData: {} });
+      if (paidOrder) queueMail(() => notifyOrderPlaced(paidOrder));
 
       res.json({ success: true });
     } else {
@@ -466,15 +491,21 @@ const cancelOrder = async (req, res) => {
       await restoreOrderStock(order.items, order._id);
     }
 
-    await orderModel.findByIdAndUpdate(orderId, {
-      status: "Cancelled",
-      cancelledAt,
-      stockAdjusted: false,
-      $push: { statusHistory: { status: "Cancelled", date: cancelledAt } },
-      ...(order.paymentMethod !== "COD" && {
-        refundStatus: "Refund Processing",
-      }),
-    });
+    const cancelled = await orderModel.findByIdAndUpdate(
+      orderId,
+      {
+        status: "Cancelled",
+        cancelledAt,
+        stockAdjusted: false,
+        $push: { statusHistory: { status: "Cancelled", date: cancelledAt } },
+        ...(order.paymentMethod !== "COD" && {
+          refundStatus: "Refund Processing",
+        }),
+      },
+      { new: true },
+    );
+
+    if (cancelled) queueMail(() => notifyOrderCancelled(cancelled));
 
     res.json({ success: true, message: "Order cancelled successfully" });
   } catch (error) {
@@ -509,6 +540,8 @@ const updateOrderStatus = async (req, res) => {
         .json({ success: false, message: "Order not found" });
     }
 
+    const previousStatus = order.status;
+
     if (
       status === "Cancelled" &&
       order.status !== "Cancelled" &&
@@ -528,6 +561,10 @@ const updateOrderStatus = async (req, res) => {
     }
 
     await order.save();
+
+    if (previousStatus !== order.status) {
+      queueMail(() => notifyStatusChanged(order));
+    }
 
     res.json({
       success: true,
@@ -587,6 +624,7 @@ const verifyDeliveryOtp = async (req, res) => {
     order.statusHistory.push({ status: "Delivered", date: Date.now() });
 
     await order.save();
+    queueMail(() => notifyStatusChanged(order));
 
     res.json({
       success: true,
@@ -647,6 +685,7 @@ const processRefund = async (req, res) => {
     order.refundDate = Date.now();
     order.refundAmount = amount;
     await order.save();
+    queueMail(() => notifyRefunded(order));
 
     await returnRequestModel.updateMany(
       { orderId: String(order._id), status: { $in: ["Requested", "Approved"] } },
