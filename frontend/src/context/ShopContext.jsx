@@ -6,7 +6,8 @@ export const ShopContext = createContext();
 
 const ShopContextProvider = (props) => {
   const currency = "₹";
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  const backendUrl =
+    import.meta.env.VITE_BACKEND_URL || "https://charu-garments.onrender.com";
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState([]);
   const [showSearch, setShowSearch] = useState(false);
