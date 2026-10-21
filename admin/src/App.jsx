@@ -16,7 +16,8 @@ import Offers from "./pages/Offers";
 import Delivery from "./pages/Delivery";
 import Settings from "./pages/Settings";
 
-export const backendUrl = import.meta.env.VITE_BACKEND_URL;
+export const backendUrl =
+  import.meta.env.VITE_BACKEND_URL || "https://charu-garments.onrender.com";
 export const currency = "₹";
 
 const App = () => {
