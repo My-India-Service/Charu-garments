@@ -52,8 +52,8 @@ const Navbar = () => {
   return (
     <>
       <div className="flex items-center justify-between py-3 sm:py-3.5 font-medium">
-        <Link to="/">
-          <img src={assets.logo} className="h-14 w-14 sm:h-16 sm:w-16 object-contain" alt="Charu Garments" />
+        <Link to="/" className="inline-flex bg-[#F4F0EA]">
+          <img src={assets.logo} className="h-14 w-14 mix-blend-multiply object-contain sm:h-16 sm:w-16" alt="Charu Garments" />
         </Link>
 
         {/* Desktop Nav Links */}
@@ -208,8 +208,8 @@ const Navbar = () => {
       >
         {/* Drawer Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <Link to="/" onClick={() => setVisible(false)}>
-            <img src={assets.logo} className="w-16 h-16 object-contain" alt="Charu Garments" />
+          <Link to="/" onClick={() => setVisible(false)} className="inline-flex bg-white">
+            <img src={assets.logo} className="h-16 w-16 mix-blend-multiply object-contain" alt="Charu Garments" />
           </Link>
           <button
             onClick={() => setVisible(false)}
