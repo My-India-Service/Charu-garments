@@ -1,8 +1,8 @@
-import { v2 as cloudinary } from "cloudinary";
 import productModel from "../models/productModel.js";
 import inventoryLogModel from "../models/inventoryLogModel.js";
 import categoryModel from "../models/categoryModel.js";
 import { ensureDefaultCategories } from "./categoryController.js";
+import { uploadBuffer } from "../utils/cloudinaryUpload.js";
 
 // function for add product
 const addProduct = async (req, res) => {
@@ -29,10 +29,7 @@ const addProduct = async (req, res) => {
 
     const imagesUrl = await Promise.all(
       images.map(async (item) => {
-        const result = await cloudinary.uploader.upload(item.path, {
-          resource_type: "image",
-        });
-        return result.secure_url;
+        return uploadBuffer(item.buffer, "products");
       }),
     );
 
@@ -223,11 +220,7 @@ const updateProduct = async (req, res) => {
       const file = req.files?.[imageFields[i]]?.[0];
 
       if (file) {
-        const result = await cloudinary.uploader.upload(file.path, {
-          resource_type: "image",
-        });
-
-        images[i] = result.secure_url;
+        images[i] = await uploadBuffer(file.buffer, "products");
       }
     }
 

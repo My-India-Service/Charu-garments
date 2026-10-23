@@ -13,6 +13,9 @@ const Login = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [referralCode, setReferralCode] = useState(
+    () => localStorage.getItem("referralCode") || "",
+  );
   const [loading, setLoading] = useState(false);
 
   const onSubmitHandler = async (event) => {
@@ -24,6 +27,7 @@ const Login = () => {
           name,
           email,
           password,
+          referralCode,
         });
         if (response.data.success) {
           setToken(response.data.token);
@@ -132,6 +136,25 @@ const Login = () => {
               Password
             </label>
           </div>
+
+          {currentState === "Sign Up" && (
+            <div className="relative">
+              <input
+                type="text"
+                id="referral"
+                value={referralCode}
+                onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                className="peer w-full border border-gray-200 rounded-lg py-3 px-4 text-sm text-gray-800 placeholder-transparent focus:outline-none focus:border-gray-900 transition-colors bg-white uppercase"
+                placeholder="Referral code"
+              />
+              <label
+                htmlFor="referral"
+                className="absolute left-4 -top-2 bg-white px-1 text-xs text-gray-500 transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-3.5 peer-focus:-top-2 peer-focus:text-xs peer-focus:text-gray-900"
+              >
+                Referral code (optional)
+              </label>
+            </div>
+          )}
 
           {currentState === "Login" && (
             <div className="flex justify-end">

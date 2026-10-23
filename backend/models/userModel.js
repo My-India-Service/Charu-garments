@@ -9,6 +9,8 @@ const userSchema = new mongoose.Schema(
     phone: { type: String, default: "" },
     location: { type: String, default: "" },
     walletBalance: { type: Number, default: 0, min: 0 },
+    referralCode: { type: String, unique: true, sparse: true },
+    referredBy: { type: String, default: "" },
     resetPasswordToken: { type: String, default: "" },
     resetPasswordExpires: { type: Number, default: 0 },
   },

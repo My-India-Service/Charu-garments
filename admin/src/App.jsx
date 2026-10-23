@@ -14,6 +14,8 @@ import Returns from "./pages/Returns";
 import Categories from "./pages/Categories";
 import Offers from "./pages/Offers";
 import Delivery from "./pages/Delivery";
+import Referrals from "./pages/Referrals";
+import Affiliates from "./pages/Affiliates";
 import Settings from "./pages/Settings";
 
 export const backendUrl =
@@ -69,6 +71,8 @@ const App = () => {
                   <Route path="/returns" element={<Returns token={token} />} />
                   <Route path="/offers" element={<Offers token={token} />} />
                   <Route path="/delivery" element={<Delivery token={token} />} />
+                  <Route path="/referrals" element={<Referrals token={token} />} />
+                  <Route path="/affiliates" element={<Affiliates token={token} />} />
                   <Route path="/settings" element={<Settings token={token} />} />
                 </Routes>
               </div>

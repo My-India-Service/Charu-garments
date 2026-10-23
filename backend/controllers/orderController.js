@@ -21,6 +21,13 @@ import {
 import { quoteDelivery } from "../utils/delivery.js";
 import { queueMail } from "../utils/mail.js";
 import {
+  quoteAffiliate,
+  quoteReferral,
+  rememberReferrer,
+  resolveReferralCode,
+  settleDeliveredRewards,
+} from "../utils/referral.js";
+import {
   notifyOrderCancelled,
   notifyOrderPlaced,
   notifyPaymentFailed,
@@ -68,28 +75,78 @@ const holdOrder = async (order, items, useWallet) => {
   return payable;
 };
 
-const priceCheckout = async (items, couponCode, address = {}, deliverySpeed = "standard") => {
+const priceCheckout = async (
+  items,
+  couponCode,
+  address = {},
+  deliverySpeed = "standard",
+  extras = {},
+) => {
   const subtotal = orderSubtotal(items);
   const quote = await quoteCoupon(couponCode, subtotal);
   if (!quote.ok) throw new Error(quote.message);
-  const delivery = await quoteDelivery({
+
+  const resolved = await resolveReferralCode(extras.userId, extras.referralCode);
+  let referral = await quoteReferral({
+    code: resolved.code,
+    userId: extras.userId,
     subtotal,
-    pincode: address?.zipcode,
-    state: address?.state,
-    speed: deliverySpeed,
   });
+  if (!referral.ok) {
+    if (resolved.typed) throw new Error(referral.message);
+    referral = { discount: 0, code: "", referrerId: "", credit: 0 };
+  }
+
+  const pickup = extras.fulfillment === "pickup";
+  const delivery = pickup
+    ? { charge: 0, speed: "standard", fastExtra: 0 }
+    : await quoteDelivery({
+        subtotal,
+        pincode: address?.zipcode,
+        state: address?.state,
+        speed: deliverySpeed,
+      });
+  const amount = roundMoney(
+    Math.max(0, subtotal + delivery.charge - quote.discount - referral.discount),
+  );
+  const buyer = extras.userId
+    ? await userModel.findById(extras.userId).select("email")
+    : null;
+  const affiliate = await quoteAffiliate({
+    code: extras.affiliateCode,
+    userEmail: buyer?.email,
+    amount,
+  });
+
   return {
-    amount: roundMoney(
-      Math.max(0, subtotal + delivery.charge - quote.discount),
-    ),
+    amount,
     couponDiscount: quote.discount,
     couponId: quote.id,
     couponCode: quote.code,
     deliveryCharge: delivery.charge,
     fastCharge: delivery.speed === "fast" ? delivery.fastExtra : 0,
     deliverySpeed: delivery.speed,
+    fulfillment: pickup ? "pickup" : "delivery",
+    referralCode: referral.code,
+    referralDiscount: referral.discount,
+    referrerId: referral.referrerId,
+    referralCredit: referral.credit,
+    affiliateCode: affiliate.code,
+    affiliateId: affiliate.id,
+    affiliateCommission: affiliate.commission,
   };
 };
+
+const rewardFields = (priced) => ({
+  referralCode: priced.referralCode || "",
+  referralDiscount: priced.referralDiscount || 0,
+  referrerId: priced.referrerId || "",
+  referralCredit: priced.referralCredit || 0,
+  affiliateCode: priced.affiliateCode || "",
+  affiliateId: priced.affiliateId || "",
+  affiliateCommission: priced.affiliateCommission || 0,
+  fulfillment: priced.fulfillment === "pickup" ? "pickup" : "delivery",
+});
 
 const attachCoupon = async (order, priced) => {
   order.couponDiscount = priced.couponDiscount;
@@ -112,9 +169,14 @@ const attachCoupon = async (order, priced) => {
 // Placing orders using COD Method
 const placeOrder = async (req, res) => {
   try {
-    const { items, address, useWallet, couponCode, deliverySpeed } = req.body;
+    const { items, address, useWallet, couponCode, deliverySpeed, referralCode, affiliateCode, fulfillment } = req.body;
     const userId = req.userId;
-    const priced = await priceCheckout(items, couponCode, address, deliverySpeed);
+    const priced = await priceCheckout(items, couponCode, address, deliverySpeed, {
+      userId,
+      referralCode,
+      affiliateCode,
+      fulfillment,
+    });
 
     const orderData = {
       userId,
@@ -125,6 +187,7 @@ const placeOrder = async (req, res) => {
       deliveryCharge: priced.deliveryCharge,
       deliverySpeed: priced.deliverySpeed,
       fastCharge: priced.fastCharge,
+      ...rewardFields(priced),
       paymentMethod: "COD",
       payment: false,
       date: Date.now(),
@@ -144,6 +207,7 @@ const placeOrder = async (req, res) => {
     }
 
     await userModel.findByIdAndUpdate(userId, { cartData: {} });
+    await rememberReferrer(userId, priced.referrerId);
     queueMail(() => notifyOrderPlaced(newOrder));
 
     res.json({
@@ -163,10 +227,15 @@ const placeOrder = async (req, res) => {
 // Placing orders using Stripe Method
 const placeOrderStripe = async (req, res) => {
   try {
-    const { items, address, useWallet, couponCode, deliverySpeed } = req.body;
+    const { items, address, useWallet, couponCode, deliverySpeed, referralCode, affiliateCode, fulfillment } = req.body;
     const userId = req.userId;
     const { origin } = req.headers;
-    const priced = await priceCheckout(items, couponCode, address, deliverySpeed);
+    const priced = await priceCheckout(items, couponCode, address, deliverySpeed, {
+      userId,
+      referralCode,
+      affiliateCode,
+      fulfillment,
+    });
 
     const orderData = {
       userId,
@@ -177,6 +246,7 @@ const placeOrderStripe = async (req, res) => {
       deliveryCharge: priced.deliveryCharge,
       deliverySpeed: priced.deliverySpeed,
       fastCharge: priced.fastCharge,
+      ...rewardFields(priced),
       paymentMethod: "Stripe",
       payment: false,
       date: Date.now(),
@@ -198,6 +268,7 @@ const placeOrderStripe = async (req, res) => {
 
     if (payable === 0) {
       await userModel.findByIdAndUpdate(userId, { cartData: {} });
+      await rememberReferrer(userId, priced.referrerId);
       queueMail(() => notifyOrderPlaced(newOrder));
       return res.json({ success: true, paidByWallet: true });
     }
@@ -280,7 +351,10 @@ const verifyStripe = async (req, res) => {
       );
 
       await userModel.findByIdAndUpdate(userId, { cartData: {} });
-      if (paidOrder) queueMail(() => notifyOrderPlaced(paidOrder));
+      if (paidOrder) {
+        await rememberReferrer(userId, paidOrder.referrerId);
+        queueMail(() => notifyOrderPlaced(paidOrder));
+      }
 
       res.json({ success: true });
     } else {
@@ -304,9 +378,14 @@ const verifyStripe = async (req, res) => {
 // Placing Orders using Razorpay Method
 const placeOrderRazorpay = async (req, res) => {
   try {
-    const { items, address, useWallet, couponCode, deliverySpeed } = req.body;
+    const { items, address, useWallet, couponCode, deliverySpeed, referralCode, affiliateCode, fulfillment } = req.body;
     const userId = req.userId;
-    const priced = await priceCheckout(items, couponCode, address, deliverySpeed);
+    const priced = await priceCheckout(items, couponCode, address, deliverySpeed, {
+      userId,
+      referralCode,
+      affiliateCode,
+      fulfillment,
+    });
 
     const orderData = {
       userId,
@@ -317,6 +396,7 @@ const placeOrderRazorpay = async (req, res) => {
       deliveryCharge: priced.deliveryCharge,
       deliverySpeed: priced.deliverySpeed,
       fastCharge: priced.fastCharge,
+      ...rewardFields(priced),
       paymentMethod: "Razorpay",
       payment: false,
       date: Date.now(),
@@ -338,6 +418,7 @@ const placeOrderRazorpay = async (req, res) => {
 
     if (payable === 0) {
       await userModel.findByIdAndUpdate(userId, { cartData: {} });
+      await rememberReferrer(userId, priced.referrerId);
       queueMail(() => notifyOrderPlaced(newOrder));
       return res.json({ success: true, paidByWallet: true });
     }
@@ -395,7 +476,10 @@ const verifyRazorpay = async (req, res) => {
       );
 
       await userModel.findByIdAndUpdate(userId, { cartData: {} });
-      if (paidOrder) queueMail(() => notifyOrderPlaced(paidOrder));
+      if (paidOrder) {
+        await rememberReferrer(userId, paidOrder.referrerId);
+        queueMail(() => notifyOrderPlaced(paidOrder));
+      }
 
       res.json({ success: true });
     } else {
@@ -624,6 +708,11 @@ const verifyDeliveryOtp = async (req, res) => {
     order.statusHistory.push({ status: "Delivered", date: Date.now() });
 
     await order.save();
+    try {
+      await settleDeliveredRewards(order);
+    } catch (rewardError) {
+      console.error("Reward failed:", rewardError.message);
+    }
     queueMail(() => notifyStatusChanged(order));
 
     res.json({

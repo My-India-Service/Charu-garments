@@ -636,9 +636,9 @@ const Orders = ({ token }) => {
                     <div className="flex items-start gap-2.5">
                       <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0 text-gray-400" />
                       <p className="text-xs text-gray-500 leading-relaxed">
-                        {order.address.street}, {order.address.city},{" "}
-                        {order.address.state}, {order.address.country} —{" "}
-                        {order.address.zipcode}
+                        {order.fulfillment === "pickup"
+                          ? "Pickup from store"
+                          : `${order.address.street}, ${order.address.city}, ${order.address.state}, ${order.address.country} — ${order.address.zipcode}`}
                       </p>
                     </div>
                   </div>
@@ -647,7 +647,7 @@ const Orders = ({ token }) => {
                     <div className="mb-4 rounded-xl border border-purple-100 bg-purple-50 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                       <div>
                         <p className="text-[11px] font-medium uppercase tracking-wide text-purple-600">
-                          Delivery code
+                          {order.fulfillment === "pickup" ? "Pickup code" : "Delivery code"}
                         </p>
                         <p className="mt-1 font-mono text-xl font-semibold tracking-[0.28em] text-slate-900">
                           {order.deliveryOtp}

@@ -194,6 +194,14 @@ const ShopContextProvider = (props) => {
   }, [backendUrl]);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const affiliate = params.get("aff");
+    const referral = params.get("ref");
+    if (affiliate) localStorage.setItem("affiliateCode", affiliate.trim().toUpperCase());
+    if (referral) localStorage.setItem("referralCode", referral.trim().toUpperCase());
+  }, []);
+
+  useEffect(() => {
     const savedToken = localStorage.getItem("token");
     if (!token && savedToken) {
       setToken(savedToken);

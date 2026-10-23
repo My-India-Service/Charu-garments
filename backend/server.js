@@ -3,6 +3,7 @@ import cors from "cors";
 import "dotenv/config";
 import connectDB from "./config/mongodb.js";
 import connectCloudinary from "./config/cloudinary.js";
+import { syncStoredImages } from "./utils/syncCloudinaryImages.js";
 import userRouter from "./routes/userRoute.js";
 import productRouter from "./routes/productRoute.js";
 import cartRouter from "./routes/cartRoute.js";
@@ -14,6 +15,8 @@ import bannerRouter from "./routes/bannerRoute.js";
 import couponRouter from "./routes/couponRoute.js";
 import deliveryRouter from "./routes/deliveryRoute.js";
 import siteSettingRouter from "./routes/siteSettingRoute.js";
+import referralRouter from "./routes/referralRoute.js";
+import affiliateRouter from "./routes/affiliateRoute.js";
 import { robots, sitemap } from "./controllers/seoController.js";
 
 // App Config
@@ -23,8 +26,12 @@ const port = process.env.PORT || 4000;
 // Middlewares
 app.use(express.json());
 app.use(cors());
-connectDB();
 connectCloudinary();
+
+await connectDB();
+syncStoredImages().catch((error) => {
+  console.error("Cloudinary image sync failed:", error.message);
+});
 
 // API Endpoints
 app.get("/", (req, res) => {
@@ -43,6 +50,8 @@ app.use("/api/banner", bannerRouter);
 app.use("/api/coupon", couponRouter);
 app.use("/api/delivery", deliveryRouter);
 app.use("/api/settings", siteSettingRouter);
+app.use("/api/referral", referralRouter);
+app.use("/api/affiliate", affiliateRouter);
 app.get("/robots.txt", robots);
 app.get("/sitemap.xml", sitemap);
 

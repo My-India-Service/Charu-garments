@@ -584,24 +584,36 @@ const OrderDetails = () => {
             <div className="flex items-center gap-2 mb-3">
               <MapPin className="w-4 h-4 flex-shrink-0" />
               <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
-                Shipping Address
-              </h2>
-            </div>
-            {/* break-words prevents long address strings from overflowing */}
-            <div className="text-sm text-gray-600 leading-relaxed space-y-0.5 break-words">
-              <p className="font-medium text-gray-900">
-                {a.firstName} {a.lastName}
-              </p>
-              {a.street && <p>{a.street}</p>}
-              <p>
-                {a.city}
-                {a.city && a.state ? ", " : ""}
-                {a.state} {a.zipcode}
-              </p>
-              {a.country && <p>{a.country}</p>}
-              {a.phone && <p className="mt-1.5">Phone: {a.phone}</p>}
-              {a.email && <p className="truncate">Email: {a.email}</p>}
-            </div>
+              {order.fulfillment === "pickup" ? "Store pickup" : "Shipping Address"}
+            </h2>
+          </div>
+          <div className="text-sm text-gray-600 leading-relaxed space-y-0.5 break-words">
+            {order.fulfillment === "pickup" ? (
+              <>
+                <p className="font-medium text-gray-900">
+                  {a.firstName} {a.lastName}
+                </p>
+                <p>Collect this order from the shop.</p>
+                {a.phone && <p className="mt-1.5">Phone: {a.phone}</p>}
+                {a.email && <p className="truncate">Email: {a.email}</p>}
+              </>
+            ) : (
+              <>
+            <p className="font-medium text-gray-900">
+              {a.firstName} {a.lastName}
+            </p>
+            {a.street && <p>{a.street}</p>}
+            <p>
+              {a.city}
+              {a.city && a.state ? ", " : ""}
+              {a.state} {a.zipcode}
+            </p>
+            {a.country && <p>{a.country}</p>}
+            {a.phone && <p className="mt-1.5">Phone: {a.phone}</p>}
+            {a.email && <p className="truncate">Email: {a.email}</p>}
+              </>
+            )}
+          </div>
           </div>
 
           {/* Payment */}
@@ -630,9 +642,11 @@ const OrderDetails = () => {
                 >
                   {order.payment
                     ? "Paid"
-                    : order.paymentMethod === "COD"
-                      ? "Pay on Delivery"
-                      : "Pending"}
+                    : order.fulfillment === "pickup" && order.paymentMethod === "COD"
+                      ? "Pay at store"
+                      : order.paymentMethod === "COD"
+                        ? "Pay on Delivery"
+                        : "Pending"}
                 </span>
               </div>
               {isRefunded && (

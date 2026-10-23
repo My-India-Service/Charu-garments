@@ -37,8 +37,14 @@ const PlaceOrder = () => {
   const [couponInput, setCouponInput] = useState("");
   const [coupon, setCoupon] = useState(null);
   const [couponLoading, setCouponLoading] = useState(false);
+  const [referralInput, setReferralInput] = useState(
+    () => localStorage.getItem("referralCode") || "",
+  );
+  const [referral, setReferral] = useState(null);
+  const [referralLoading, setReferralLoading] = useState(false);
   const [deliveryQuote, setDeliveryQuote] = useState(null);
   const [deliverySpeed, setDeliverySpeed] = useState("standard");
+  const [fulfillment, setFulfillment] = useState("delivery");
 
   const {
     backendUrl,
@@ -48,6 +54,7 @@ const PlaceOrder = () => {
     getCartAmount,
     products,
     currency,
+    siteSettings,
   } = useContext(ShopContext);
 
   const [formData, setFormData] = useState({
@@ -78,11 +85,13 @@ const PlaceOrder = () => {
       .catch(() => {});
   }, [token, backendUrl]);
 
+  const pickup = fulfillment === "pickup";
   const pincodeReady = formData.zipcode.replace(/\D/g, "").length === 6;
 
   useEffect(() => {
-    if (!pincodeReady) {
-      setDeliveryQuote(null);
+    if (pickup || !pincodeReady) {
+      if (pickup) setDeliveryQuote(null);
+      if (!pincodeReady) setDeliveryQuote(null);
       return;
     }
     let cancelled = false;
@@ -111,7 +120,7 @@ const PlaceOrder = () => {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [backendUrl, cartItems, products, formData.zipcode, formData.state, pincodeReady, deliverySpeed]);
+  }, [backendUrl, cartItems, products, formData.zipcode, formData.state, pincodeReady, deliverySpeed, pickup]);
 
   const applyCoupon = async () => {
     const code = couponInput.trim();
@@ -141,18 +150,54 @@ const PlaceOrder = () => {
     }
   };
 
-  const discount = coupon?.discount || 0;
-  const shippingReady = pincodeReady && deliveryQuote !== null;
+  const applyReferral = async () => {
+    const code = referralInput.trim();
+    if (!code) {
+      toast.error("Enter a referral code");
+      return;
+    }
+    setReferralLoading(true);
+    try {
+      const response = await axios.post(
+        backendUrl + "/api/referral/check",
+        { code, subtotal: getCartAmount() },
+        { headers: { token } },
+      );
+      if (response.data.success) {
+        setReferral({ code: response.data.code, discount: response.data.discount });
+        localStorage.setItem("referralCode", response.data.code);
+        if (response.data.discount > 0) {
+          toast.success("Referral applied");
+        } else {
+          toast.success("Referral linked");
+        }
+      } else {
+        setReferral(null);
+        toast.error(response.data.message);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Could not apply referral code");
+    } finally {
+      setReferralLoading(false);
+    }
+  };
+
+  const discount = (coupon?.discount || 0) + (referral?.discount || 0);
+  const shippingReady = pickup || (pincodeReady && deliveryQuote !== null);
   const fastSelected =
-    shippingReady && deliveryQuote.fastAvailable && deliverySpeed === "fast";
-  const shippingFee = shippingReady
-    ? deliveryQuote.standardCharge + (fastSelected ? deliveryQuote.fastExtra : 0)
-    : 0;
-  const deliveryNote = shippingReady
-    ? fastSelected
-      ? `Fast delivery adds ${currency}${deliveryQuote.fastExtra}.00`
-      : deliveryQuote.reason
-    : "";
+    !pickup && shippingReady && deliveryQuote?.fastAvailable && deliverySpeed === "fast";
+  const shippingFee = pickup
+    ? 0
+    : shippingReady
+      ? deliveryQuote.standardCharge + (fastSelected ? deliveryQuote.fastExtra : 0)
+      : 0;
+  const deliveryNote = pickup
+    ? "Collect it from the shop. No shipping charge."
+    : shippingReady
+      ? fastSelected
+        ? `Fast delivery adds ${currency}${deliveryQuote.fastExtra}.00`
+        : deliveryQuote.reason
+      : "";
   const orderTotal = Math.max(0, getCartAmount() + shippingFee - discount);
   const walletApplied = useWallet ? Math.min(walletBalance, orderTotal) : 0;
   const payableNow = Math.max(orderTotal - walletApplied, 0);
@@ -185,17 +230,19 @@ const PlaceOrder = () => {
   const onSubmitHandler = async (event) => {
     event.preventDefault();
 
-    const requiredFields = [
-      "firstName",
-      "lastName",
-      "email",
-      "street",
-      "city",
-      "state",
-      "zipcode",
-      "country",
-      "phone",
-    ];
+    const requiredFields = pickup
+      ? ["firstName", "lastName", "email", "phone"]
+      : [
+          "firstName",
+          "lastName",
+          "email",
+          "street",
+          "city",
+          "state",
+          "zipcode",
+          "country",
+          "phone",
+        ];
 
     const hasEmptyField = requiredFields.some((key) => !formData[key].trim());
     if (hasEmptyField) {
@@ -243,7 +290,10 @@ const PlaceOrder = () => {
         amount: Math.max(0, getCartAmount() + shippingFee - (coupon?.discount || 0)),
         useWallet,
         couponCode: coupon?.code || "",
+        referralCode: referral?.code || "",
+        affiliateCode: localStorage.getItem("affiliateCode") || "",
         deliverySpeed: fastSelected ? "fast" : "standard",
+        fulfillment,
       };
 
       switch (method) {
@@ -319,7 +369,30 @@ const PlaceOrder = () => {
       {/* ── Left: Delivery Information ── */}
       <div className="flex flex-col gap-4 w-full sm:max-w-[480px]">
         <div className="text-xl sm:text-2xl mb-1">
-          <Title text1={"DELIVERY"} text2={"INFORMATION"} />
+          <Title text1={pickup ? "PICKUP" : "DELIVERY"} text2={"INFORMATION"} />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setFulfillment("delivery")}
+            className={`rounded-lg border px-3 py-3 text-left ${
+              !pickup ? "border-gray-900 bg-gray-50" : "border-gray-200 bg-white"
+            }`}
+          >
+            <span className="block text-sm font-medium text-gray-800">Home delivery</span>
+            <span className="block text-xs text-gray-500 mt-1">We ship it to your address</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setFulfillment("pickup")}
+            className={`rounded-lg border px-3 py-3 text-left ${
+              pickup ? "border-gray-900 bg-gray-50" : "border-gray-200 bg-white"
+            }`}
+          >
+            <span className="block text-sm font-medium text-gray-800">Pickup from store</span>
+            <span className="block text-xs text-gray-500 mt-1">Collect it yourself, free</span>
+          </button>
         </div>
 
         {/* Name Row */}
@@ -352,6 +425,7 @@ const PlaceOrder = () => {
           required
         />
 
+        {!pickup && (
         <FloatingInput
           id="street"
           name="street"
@@ -360,46 +434,49 @@ const PlaceOrder = () => {
           onChange={onChangeHandler}
           required
         />
+        )}
 
-        {/* City + State */}
-        <div className="flex gap-3">
-          <FloatingInput
-            id="city"
-            name="city"
-            label="City"
-            value={formData.city}
-            onChange={onChangeHandler}
-            required
-          />
-          <FloatingInput
-            id="state"
-            name="state"
-            label="State"
-            value={formData.state}
-            onChange={onChangeHandler}
-            required
-          />
-        </div>
+        {!pickup && (
+          <>
+            <div className="flex gap-3">
+              <FloatingInput
+                id="city"
+                name="city"
+                label="City"
+                value={formData.city}
+                onChange={onChangeHandler}
+                required
+              />
+              <FloatingInput
+                id="state"
+                name="state"
+                label="State"
+                value={formData.state}
+                onChange={onChangeHandler}
+                required
+              />
+            </div>
 
-        {/* Zipcode + Country */}
-        <div className="flex gap-3">
-          <FloatingInput
-            id="zipcode"
-            name="zipcode"
-            label="Zipcode"
-            value={formData.zipcode}
-            onChange={onChangeHandler}
-            required
-          />
-          <FloatingInput
-            id="country"
-            name="country"
-            label="Country"
-            value={formData.country}
-            onChange={onChangeHandler}
-            required
-          />
-        </div>
+            <div className="flex gap-3">
+              <FloatingInput
+                id="zipcode"
+                name="zipcode"
+                label="Zipcode"
+                value={formData.zipcode}
+                onChange={onChangeHandler}
+                required
+              />
+              <FloatingInput
+                id="country"
+                name="country"
+                label="Country"
+                value={formData.country}
+                onChange={onChangeHandler}
+                required
+              />
+            </div>
+          </>
+        )}
 
         <FloatingInput
           id="phone"
@@ -412,6 +489,21 @@ const PlaceOrder = () => {
           required
         />
 
+        {pickup && (
+          <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3.5">
+            <p className="text-sm font-medium text-gray-800">Collect from</p>
+            <p className="mt-1 text-sm text-gray-600 leading-relaxed">{siteSettings.address}</p>
+            <p className="mt-1 text-xs text-gray-500">
+              {siteSettings.phone}
+              {siteSettings.email ? ` · ${siteSettings.email}` : ""}
+            </p>
+            <p className="mt-2 text-xs text-gray-500">
+              We will tell you when the order is ready. Bring this phone number to the shop.
+            </p>
+          </div>
+        )}
+
+        {!pickup && (
         <div className="mt-1 flex items-center justify-between gap-4 rounded-lg border border-gray-200 bg-white px-4 py-3.5">
           <div>
             <p className="text-sm font-medium text-gray-800">Shipping charges</p>
@@ -429,8 +521,9 @@ const PlaceOrder = () => {
                 : `${currency}${shippingFee}.00`}
           </p>
         </div>
+        )}
 
-        {shippingReady && deliveryQuote.fastAvailable && (
+        {!pickup && shippingReady && deliveryQuote?.fastAvailable && (
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
@@ -516,6 +609,44 @@ const PlaceOrder = () => {
           </p>
         )}
 
+        <div className="mt-3 flex gap-2">
+          <input
+            value={referralInput}
+            onChange={(e) => setReferralInput(e.target.value.toUpperCase())}
+            placeholder="Referral code"
+            className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm uppercase"
+          />
+          {referral ? (
+            <button
+              type="button"
+              onClick={() => {
+                setReferral(null);
+                setReferralInput("");
+                localStorage.removeItem("referralCode");
+              }}
+              className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider border border-gray-200 rounded-lg"
+            >
+              Remove
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={applyReferral}
+              disabled={referralLoading}
+              className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider bg-gray-900 text-white rounded-lg disabled:opacity-60"
+            >
+              {referralLoading ? "..." : "Apply"}
+            </button>
+          )}
+        </div>
+        {referral && (
+          <p className="mt-2 text-xs text-emerald-700">
+            {referral.discount > 0
+              ? `${referral.code} saves ${currency}${referral.discount} on this first order`
+              : `${referral.code} is linked to this order`}
+          </p>
+        )}
+
         {walletBalance > 0 && (
           <label className="mt-6 flex items-start gap-3 rounded-lg border border-gray-200 p-3.5 cursor-pointer">
             <input
@@ -589,7 +720,7 @@ const PlaceOrder = () => {
                 className={`w-4 h-4 rounded-full border-2 flex-shrink-0 transition-colors ${method === "cod" ? "border-gray-900 bg-gray-900" : "border-gray-300"}`}
               />
               <p className="text-sm font-medium text-gray-700 tracking-wider uppercase">
-                Cash on Delivery
+                {pickup ? "Pay at store" : "Cash on Delivery"}
               </p>
             </div>
           </div>

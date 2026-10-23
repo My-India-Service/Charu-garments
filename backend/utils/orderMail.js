@@ -86,7 +86,13 @@ const summaryBlock = (order) => {
       </tr>
       ${itemRows(order.items)}
     </table>
-    ${ship ? `<p style="margin:14px 0 0;color:#555;">Ships to ${esc(ship)}</p>` : ""}
+    ${
+      order.fulfillment === "pickup"
+        ? `<p style="margin:14px 0 0;color:#555;">Pickup from store. Bring a photo ID when you collect the order.</p>`
+        : ship
+          ? `<p style="margin:14px 0 0;color:#555;">Ships to ${esc(ship)}</p>`
+          : ""
+    }
   `;
 };
 

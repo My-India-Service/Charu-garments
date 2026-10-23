@@ -1,5 +1,5 @@
-import { v2 as cloudinary } from "cloudinary";
 import bannerModel from "../models/bannerModel.js";
+import { uploadBuffer } from "../utils/cloudinaryUpload.js";
 
 const listBanners = async (req, res) => {
   try {
@@ -28,16 +28,14 @@ const addBanner = async (req, res) => {
     if (!title) return res.json({ success: false, message: "Title is required" });
     if (!image) return res.json({ success: false, message: "Banner image is required" });
 
-    const uploaded = await cloudinary.uploader.upload(image.path, {
-      resource_type: "image",
-    });
+    const imageUrl = await uploadBuffer(image.buffer, "banners");
 
     const banner = await bannerModel.create({
       title,
       subtitle: req.body.subtitle?.trim() || "",
       buttonText: req.body.buttonText?.trim() || "Shop now",
       link: req.body.link?.trim() || "/collection",
-      image: uploaded.secure_url,
+      image: imageUrl,
       active: true,
       date: Date.now(),
     });

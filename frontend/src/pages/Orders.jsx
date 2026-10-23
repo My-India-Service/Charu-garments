@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ShopContext } from "../context/ShopContext";
 import Title from "../components/Title";
+import ReferralCard from "../components/ReferralCard";
 import axios from "axios";
 import toast from "react-hot-toast";
 
@@ -90,6 +91,7 @@ const Orders = () => {
       <div className="text-2xl mb-6">
         <Title text1={"MY"} text2={"ORDERS"} />
       </div>
+      <ReferralCard />
 
       {/* Search */}
       {!loading && orders.length > 0 && (

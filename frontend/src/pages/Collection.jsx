@@ -1,12 +1,15 @@
 import React, { useContext, useEffect, useState } from "react";
 import axios from "axios";
+import { useSearchParams } from "react-router-dom";
 import { ShopContext } from "../context/ShopContext";
+import { categoryBanners } from "../components/HomeBanners";
 import { assets } from "../assets/assets";
 import Title from "../components/Title";
 import ProductItem from "../components/ProductItem";
 
 const Collection = () => {
   const { products, search, showSearch, backendUrl } = useContext(ShopContext);
+  const [params] = useSearchParams();
 
   const [showFilter, setShowFilter] = useState(false);
   const [filterProducts, setFilterProducts] = useState([]);
@@ -15,6 +18,11 @@ const Collection = () => {
   const [categoryOptions, setCategoryOptions] = useState([]);
   const [subCategoryOptions, setSubCategoryOptions] = useState([]);
   const [sortType, setSortType] = useState("relevant");
+
+  useEffect(() => {
+    const name = params.get("category");
+    if (name && ["Men", "Women", "Kids"].includes(name)) setCategory([name]);
+  }, [params]);
 
   useEffect(() => {
     axios
@@ -229,6 +237,13 @@ const Collection = () => {
 
       {/* ── Product Grid ── */}
       <div className="flex-1 min-w-0">
+        {category.length === 1 && categoryBanners[category[0]] && (
+          <img
+            src={categoryBanners[category[0]]}
+            alt={`${category[0]} wear`}
+            className="mb-6 w-full h-auto rounded-2xl object-cover shadow-[0_12px_30px_rgba(17,17,17,0.08)]"
+          />
+        )}
         {/* Header row */}
         <div className="flex items-center justify-between mb-6">
           <Title text1={"ALL"} text2={"COLLECTIONS"} />

@@ -7,7 +7,7 @@ const walletTransactionSchema = new mongoose.Schema({
   balanceAfter: { type: Number, required: true },
   source: {
     type: String,
-    enum: ["refund", "return", "order"],
+    enum: ["refund", "return", "order", "referral"],
     required: true,
   },
   orderId: { type: String, default: "" },

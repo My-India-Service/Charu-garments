@@ -64,6 +64,13 @@ function getDescriptionSegments(key, time, order) {
         s(". Our team is packing your items and completing quality checks."),
       ];
     case "Shipped":
+      if (order.fulfillment === "pickup") {
+        return [
+          s("Your order was packed on "),
+          d(t),
+          s(". It will be kept ready at the store."),
+        ];
+      }
       return [
         s("Your package left our Bhimavaram dispatch center on "),
         d(t),
@@ -72,6 +79,13 @@ function getDescriptionSegments(key, time, order) {
         s("."),
       ];
     case "Out for delivery":
+      if (order.fulfillment === "pickup") {
+        return [
+          s("Your order is ready for pickup on "),
+          d(t),
+          s(". Come to the shop and share your pickup code."),
+        ];
+      }
       return [
         s("Your package reached the "),
         d(a.city),
@@ -82,6 +96,15 @@ function getDescriptionSegments(key, time, order) {
         s("."),
       ];
     case "Delivered":
+      if (order.fulfillment === "pickup") {
+        return [
+          s("Order collected by "),
+          d(fullName),
+          s(" on "),
+          d(t),
+          s(". Thank you for shopping with Charu Garments."),
+        ];
+      }
       return [
         s("Package delivered to "),
         d(fullName),
@@ -122,21 +145,24 @@ function buildSteps(order) {
     {
       key: "Shipped",
       Icon: Truck,
-      label: "Shipped",
+      label: order.fulfillment === "pickup" ? "Packed for pickup" : "Shipped",
       location: "Charu Garments Dispatch Center, Bhimavaram",
       _fallbackTime: addMinutes(createdAt, 120),
     },
     {
       key: "Out for delivery",
       Icon: MapPinned,
-      label: "Out for delivery",
-      location: `${a.city || ""}, ${a.state || ""}`.replace(/^, |, $/g, ""),
+      label: order.fulfillment === "pickup" ? "Ready for pickup" : "Out for delivery",
+      location:
+        order.fulfillment === "pickup"
+          ? "Charu Garments store"
+          : `${a.city || ""}, ${a.state || ""}`.replace(/^, |, $/g, ""),
       _fallbackTime: addMinutes(createdAt, 420),
     },
     {
       key: "Delivered",
       Icon: PackageCheck,
-      label: "Delivered",
+      label: order.fulfillment === "pickup" ? "Picked up" : "Delivered",
       location: `${a.street ? a.street + ", " : ""}${a.city || ""}`,
       _fallbackTime: addMinutes(createdAt, 500),
     },
@@ -163,7 +189,7 @@ function DescriptionSegments({ segments }) {
 
 // ─── OTP card ─────────────────────────────────────────────────────────────────
 
-function OtpCard({ otp }) {
+function OtpCard({ otp, pickup }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -177,7 +203,9 @@ function OtpCard({ otp }) {
       <div className="flex items-start gap-2 mb-2">
         <ShieldCheck className="w-3.5 h-3.5 text-slate-500 flex-shrink-0 mt-0.5" />
         <p className="text-[11px] sm:text-xs text-slate-600 leading-snug">
-          Share this code with the delivery agent to confirm receipt.
+          {pickup
+            ? "Show this code at the shop when you collect the order."
+            : "Share this code with the delivery agent to confirm receipt."}
         </p>
       </div>
 
@@ -221,6 +249,7 @@ function TrackingStep({
   expanded,
   onToggle,
   deliveryOtp,
+  pickup,
 }) {
   const completed = state === "completed";
   const current = state === "current";
@@ -317,7 +346,7 @@ function TrackingStep({
                 <DescriptionSegments segments={step.descriptionSegments} />
               </div>
               {step.key === "Out for delivery" && deliveryOtp && (
-                <OtpCard otp={deliveryOtp} />
+                <OtpCard otp={deliveryOtp} pickup={pickup} />
               )}
             </div>
           </>
@@ -389,7 +418,7 @@ export function OrderTrackingTimeline({ order, currentIndex }) {
 
       {order.status === "Out for delivery" && order.deliveryOtp && (
         <div className="mb-5">
-          <OtpCard otp={order.deliveryOtp} />
+          <OtpCard otp={order.deliveryOtp} pickup={order.fulfillment === "pickup"} />
         </div>
       )}
 
@@ -405,6 +434,7 @@ export function OrderTrackingTimeline({ order, currentIndex }) {
             expanded={expandedIndex === i}
             onToggle={() => handleToggle(i)}
             deliveryOtp={order.deliveryOtp ?? null}
+            pickup={order.fulfillment === "pickup"}
           />
         ))}
       </div>

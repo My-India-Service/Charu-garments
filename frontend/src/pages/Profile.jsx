@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import axios from "axios";
+import ReferralCard from "../components/ReferralCard";
 
 const backendUrl =
   import.meta.env.VITE_BACKEND_URL || "https://charu-garments.onrender.com";
@@ -276,6 +277,8 @@ const Profile = () => {
             </div>
           </div>
         </div>
+
+        <ReferralCard />
 
         {/* ── Personal Details ── */}
         <Section title="Personal Details">

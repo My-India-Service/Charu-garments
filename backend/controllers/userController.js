@@ -6,6 +6,7 @@ import userModel from "../models/userModel.js";
 import walletTransactionModel from "../models/walletTransactionModel.js";
 import { queueMail } from "../utils/mail.js";
 import { sendResetEmail, sendWelcomeEmail } from "../utils/accountMail.js";
+import { ensureReferralCode } from "../utils/referral.js";
 
 const hashResetToken = (token) =>
   crypto.createHash("sha256").update(token).digest("hex");
@@ -93,7 +94,17 @@ const registerUser = async (req, res) => {
       password: hashedPassword,
     });
 
+    const referralCode = String(req.body.referralCode || "").trim().toUpperCase();
+    if (referralCode) {
+      const referrer = await userModel.findOne({ referralCode });
+      if (!referrer) {
+        return res.json({ success: false, message: "Referral code is not valid" });
+      }
+      newUser.referredBy = String(referrer._id);
+    }
+
     const user = await newUser.save();
+    await ensureReferralCode(user);
     queueMail(() => sendWelcomeEmail(user));
 
     const token = createToken(user._id);
@@ -246,6 +257,7 @@ const getUserProfile = async (req, res) => {
       .findById(req.userId)
       .select("-password -resetPasswordToken -resetPasswordExpires");
     if (!user) return res.json({ success: false, message: "User not found" });
+    await ensureReferralCode(user);
     res.json({ success: true, user });
   } catch (err) {
     res.json({ success: false, message: err.message });

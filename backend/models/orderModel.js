@@ -137,10 +137,27 @@ const orderSchema = new mongoose.Schema({
     default: "standard",
   },
 
+  fulfillment: {
+    type: String,
+    enum: ["delivery", "pickup"],
+    default: "delivery",
+  },
+
   fastCharge: {
     type: Number,
     default: 0,
   },
+
+  referralCode: { type: String, default: "" },
+  referralDiscount: { type: Number, default: 0 },
+  referrerId: { type: String, default: "" },
+  referralCredit: { type: Number, default: 0 },
+  referralCredited: { type: Boolean, default: false },
+
+  affiliateCode: { type: String, default: "" },
+  affiliateId: { type: String, default: "" },
+  affiliateCommission: { type: Number, default: 0 },
+  affiliateCredited: { type: Boolean, default: false },
 });
 
 const orderModel =
