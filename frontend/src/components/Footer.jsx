@@ -11,8 +11,14 @@ const Footer = () => {
     <footer className="mt-20 bg-[#1C1917] text-[#F4F0EA] sm:mt-28">
       <div className="grid grid-cols-2 gap-10 px-4 py-14 sm:grid-cols-[3fr_1fr_1fr] sm:gap-14 sm:px-[5vw] md:px-[7vw] lg:px-[9vw]">
         <div className="col-span-2 sm:col-span-1">
-          <Link to="/" className="mb-5 inline-flex rounded-full bg-white p-1">
-            <img src={assets.logo} className="w-24 sm:w-28" alt="Charu Garments" />
+          <Link to="/" className="mb-5 inline-block">
+            <span className="block h-24 w-24 overflow-hidden rounded-full shadow-[0_0_0_2px_#c6a15b] sm:h-28 sm:w-28">
+              <img
+                src={assets.logo}
+                alt="Charu Garments"
+                className="h-full w-full scale-[1.18] object-cover"
+              />
+            </span>
           </Link>
 
           <p className="max-w-xs text-[13px] leading-relaxed text-[#C9C1B8]">
