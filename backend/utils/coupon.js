@@ -1,13 +1,9 @@
 import couponModel from "../models/couponModel.js";
 import { roundMoney } from "./wallet.js";
+import { lineAmount } from "./offer.js";
 
 export const orderSubtotal = (items) =>
-  roundMoney(
-    (items || []).reduce(
-      (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0),
-      0,
-    ),
-  );
+  roundMoney((items || []).reduce((sum, item) => sum + lineAmount(item), 0));
 
 export const quoteCoupon = async (rawCode, subtotal) => {
   const code = String(rawCode || "").trim().toUpperCase();

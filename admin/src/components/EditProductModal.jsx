@@ -188,6 +188,8 @@ const EditProductModal = ({ product, token, onClose, fetchList }) => {
     description: product.description || "",
     price: product.price,
     mrp: product.mrp || "",
+    offerQty: product.offerQty || "",
+    offerPrice: product.offerPrice || "",
     category: product.category || "Men",
     subCategory: product.subCategory || "Topwear",
     sizes: product.sizes || [],
@@ -303,6 +305,20 @@ const EditProductModal = ({ product, token, onClose, fetchList }) => {
       toast.error("MRP must be higher than the selling price");
       return;
     }
+    if (
+      (editForm.offerQty || editForm.offerPrice) &&
+      (Number(editForm.offerQty) < 2 || Number(editForm.offerPrice) <= 0)
+    ) {
+      toast.error("Special offer needs at least 2 pieces and a price");
+      return;
+    }
+    if (
+      Number(editForm.offerQty) >= 2 &&
+      Number(editForm.offerPrice) >= Number(editForm.offerQty) * Number(editForm.price)
+    ) {
+      toast.error("Offer price must be less than the regular total");
+      return;
+    }
 
     setEditLoading(true);
     try {
@@ -312,6 +328,8 @@ const EditProductModal = ({ product, token, onClose, fetchList }) => {
       formData.append("description", editForm.description);
       formData.append("price", editForm.price);
       formData.append("mrp", editForm.mrp || 0);
+      formData.append("offerQty", editForm.offerQty || 0);
+      formData.append("offerPrice", editForm.offerPrice || 0);
       formData.append("category", editForm.category);
       formData.append("subCategory", editForm.subCategory);
       formData.append("sizes", JSON.stringify(editForm.sizes));
@@ -518,6 +536,43 @@ const EditProductModal = ({ product, token, onClose, fetchList }) => {
               Shows as a discount on the store
             </p>
           )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                Special offer pieces
+              </label>
+              <input
+                type="number"
+                min="2"
+                value={editForm.offerQty}
+                onChange={onFieldChange("offerQty")}
+                placeholder="e.g. 2"
+                className="w-full rounded-2xl border border-gray-200 px-4 py-3.5 text-[15px] text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                Special offer price ({currency})
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={editForm.offerPrice}
+                onChange={onFieldChange("offerPrice")}
+                placeholder="e.g. 899"
+                className="w-full rounded-2xl border border-gray-200 px-4 py-3.5 text-[15px] text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-all"
+              />
+            </div>
+          </div>
+          {Number(editForm.offerQty) >= 2 &&
+            Number(editForm.offerPrice) > 0 &&
+            Number(editForm.offerPrice) < Number(editForm.offerQty) * Number(editForm.price) && (
+              <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">
+                Special Offer: {editForm.offerQty} Pieces @ {currency}
+                {editForm.offerPrice}
+              </p>
+            )}
 
           {/* Sizes */}
           <div>

@@ -385,10 +385,11 @@ const OrderDetails = () => {
     (sum, it) => sum + Number(it.quantity || 0),
     0,
   );
-  const subtotal = order.items.reduce(
-    (sum, it) => sum + Number(it.price || 0) * Number(it.quantity || 0),
-    0,
-  );
+  const lineAmount = (it) =>
+    it.lineTotal != null
+      ? Number(it.lineTotal)
+      : Number(it.price || 0) * Number(it.quantity || 0);
+  const subtotal = order.items.reduce((sum, it) => sum + lineAmount(it), 0);
   const deliveryFee =
     order.deliveryCharge != null
       ? Number(order.deliveryCharge)
@@ -491,7 +492,7 @@ const OrderDetails = () => {
                   </div>
                   <p className="text-sm font-semibold text-gray-900 flex-shrink-0">
                     {currency}
-                    {item.price * item.quantity}
+                    {lineAmount(item)}
                   </p>
                 </div>
               ))}

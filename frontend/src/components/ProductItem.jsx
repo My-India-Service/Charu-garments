@@ -2,10 +2,12 @@ import React, { useContext } from "react";
 import { ShopContext } from "../context/ShopContext";
 import { Link } from "react-router-dom";
 import PriceTag, { discountPercent } from "./PriceTag";
+import { offerLabel } from "../utils/offer";
 
-const ProductItem = ({ id, image, name, price, mrp }) => {
+const ProductItem = ({ id, image, name, price, mrp, offerQty, offerPrice }) => {
   const { currency } = useContext(ShopContext);
   const off = discountPercent(price, mrp);
+  const offer = offerLabel({ price, offerQty, offerPrice }, currency);
 
   return (
     <Link className="group block text-[#1C1917]" to={`/product/${id}`}>
@@ -30,6 +32,11 @@ const ProductItem = ({ id, image, name, price, mrp }) => {
           {name}
         </p>
         <PriceTag price={price} mrp={mrp} currency={currency} />
+        {offer && (
+          <p className="text-[11px] font-semibold leading-snug text-[#7A3030]">
+            {offer}
+          </p>
+        )}
       </div>
     </Link>
   );

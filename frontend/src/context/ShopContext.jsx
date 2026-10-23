@@ -1,6 +1,7 @@
 import { createContext, useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import axios from "axios";
+import { cartOfferPricing } from "../utils/offer";
 
 export const ShopContext = createContext();
 
@@ -129,20 +130,9 @@ const ShopContextProvider = (props) => {
     return totalCount;
   };
 
-  const getCartAmount = () => {
-    let totalAmount = 0;
-    for (const items in cartItems) {
-      let itemInfo = products.find((product) => product._id === items);
-      for (const item in cartItems[items]) {
-        try {
-          if (cartItems[items][item] > 0) {
-            totalAmount += itemInfo.price * cartItems[items][item];
-          }
-        } catch (error) {}
-      }
-    }
-    return totalAmount;
-  };
+  const getCartAmount = () => cartOfferPricing(products, cartItems).subtotal;
+
+  const getOfferSaving = () => cartOfferPricing(products, cartItems).saving;
 
   const getProductsData = async () => {
     try {
@@ -231,6 +221,7 @@ const ShopContextProvider = (props) => {
     updateQuantity,
     getCartCount,
     getCartAmount,
+    getOfferSaving,
     backendUrl,
     setToken,
     token,

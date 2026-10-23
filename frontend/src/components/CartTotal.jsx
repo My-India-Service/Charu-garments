@@ -9,9 +9,11 @@ const CartTotal = ({
   showShipping = true,
   shippingReady = true,
 }) => {
-  const { currency, delivery_fee, getCartAmount } = useContext(ShopContext);
+  const { currency, delivery_fee, getCartAmount, getOfferSaving } = useContext(ShopContext);
 
   const subtotal = getCartAmount();
+  const offerSaving = getOfferSaving();
+  const regularSubtotal = subtotal + offerSaving;
   const fee = showShipping ? (deliveryFee ?? delivery_fee) : 0;
   const total = subtotal === 0 ? 0 : Math.max(0, subtotal + fee - discount);
 
@@ -26,7 +28,7 @@ const CartTotal = ({
           <span className="text-gray-500 tracking-wide">Subtotal</span>
           <span className="font-medium text-gray-800 tabular-nums">
             {currency}
-            {subtotal}.00
+            {regularSubtotal}.00
           </span>
         </div>
 
@@ -53,6 +55,18 @@ const CartTotal = ({
           </>
         )}
 
+        {offerSaving > 0 && (
+          <>
+            <div className="h-px bg-gray-100 mx-4" />
+            <div className="flex items-center justify-between px-4 py-3.5 bg-white">
+              <span className="text-gray-500 tracking-wide">Special offer</span>
+              <span className="font-medium text-emerald-700 tabular-nums">
+                -{currency}
+                {offerSaving}
+              </span>
+            </div>
+          </>
+        )}
         {discount > 0 && (
           <>
             <div className="h-px bg-gray-100 mx-4" />

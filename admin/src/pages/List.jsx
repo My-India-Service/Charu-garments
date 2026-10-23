@@ -256,6 +256,11 @@ const List = ({ token }) => {
                       {Math.round(((item.mrp - item.price) / item.mrp) * 100)}% OFF
                     </span>
                   )}
+                  {Number(item.offerQty) >= 2 && Number(item.offerPrice) > 0 && (
+                    <span className="ml-2 text-[10px] font-medium text-amber-700">
+                      {item.offerQty} @ ₹{item.offerPrice}
+                    </span>
+                  )}
                 </p>
 
                 {/* Actions */}

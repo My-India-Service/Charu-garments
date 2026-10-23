@@ -75,7 +75,11 @@ export const debitWallet = async ({
 export const itemSubtotal = (order) =>
   roundMoney(
     (order.items || []).reduce(
-      (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0),
+      (sum, item) =>
+        sum +
+        (item?.lineTotal != null
+          ? Number(item.lineTotal)
+          : Number(item.price || 0) * Number(item.quantity || 0)),
       0,
     ),
   );

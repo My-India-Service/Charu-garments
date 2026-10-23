@@ -51,6 +51,8 @@ const RelatedProducts = ({ category, subCategory }) => {
               name={item.name}
               price={item.price}
               mrp={item.mrp}
+              offerQty={item.offerQty}
+              offerPrice={item.offerPrice}
               image={item.image}
             />
           </div>

@@ -38,7 +38,10 @@ const itemRows = (items = []) =>
   items
     .map((item) => {
       const qty = Number(item.quantity) || 1;
-      const line = Number(item.price || 0) * qty;
+      const line =
+        item.lineTotal != null
+          ? Number(item.lineTotal)
+          : Number(item.price || 0) * qty;
       return `<tr>
         <td style="padding:10px 0;border-bottom:1px solid #eee;color:#111;">${esc(item.name)}${item.size ? ` <span style="color:#666;">· ${esc(item.size)}</span>` : ""}</td>
         <td style="padding:10px 0;border-bottom:1px solid #eee;color:#666;text-align:center;">${qty}</td>

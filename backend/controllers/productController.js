@@ -15,6 +15,24 @@ const parseMrp = (price, mrp) => {
   return original;
 };
 
+const parseOffer = (price, offerQty, offerPrice) => {
+  const pieces =
+    offerQty === undefined || offerQty === null || offerQty === ""
+      ? 0
+      : Math.floor(Number(offerQty));
+  const deal =
+    offerPrice === undefined || offerPrice === null || offerPrice === ""
+      ? 0
+      : Number(offerPrice);
+  if (!pieces && !deal) return { offerQty: 0, offerPrice: 0 };
+  if (pieces < 2) throw new Error("Special offer needs at least 2 pieces");
+  if (!(deal > 0)) throw new Error("Enter the special offer price");
+  if (deal >= pieces * Number(price)) {
+    throw new Error("Offer price must be less than the regular total");
+  }
+  return { offerQty: pieces, offerPrice: deal };
+};
+
 // function for add product
 const addProduct = async (req, res) => {
   try {
@@ -23,6 +41,8 @@ const addProduct = async (req, res) => {
       description,
       price,
       mrp,
+      offerQty,
+      offerPrice,
       category,
       subCategory,
       sizes,
@@ -61,6 +81,7 @@ const addProduct = async (req, res) => {
       category,
       price: Number(price),
       mrp: parseMrp(price, mrp),
+      ...parseOffer(price, offerQty, offerPrice),
       subCategory,
       bestseller: bestseller === "true" ? true : false,
       sizes: parsedSizes,
@@ -201,6 +222,8 @@ const updateProduct = async (req, res) => {
       description,
       price,
       mrp,
+      offerQty,
+      offerPrice,
       category,
       subCategory,
       sizes,
@@ -266,6 +289,8 @@ const updateProduct = async (req, res) => {
         ...(mrp !== undefined && {
           mrp: parseMrp(price || product.price, mrp),
         }),
+        ...(offerQty !== undefined &&
+          parseOffer(price || product.price, offerQty, offerPrice)),
         ...(category && { category }),
         ...(subCategory && { subCategory }),
         ...(sizes && { sizes: nextSizes, stock: nextStock }),

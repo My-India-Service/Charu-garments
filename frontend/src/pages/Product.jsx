@@ -8,6 +8,7 @@ import { toast } from "react-hot-toast";
 import { X, ShieldCheck, BadgeCheck, Truck } from "lucide-react";
 import { getProductReviews } from "../utils/reviewUtils";
 import PriceTag, { discountPercent } from "../components/PriceTag";
+import { offerLabel } from "../utils/offer";
 
 const SizeChartModal = ({ onClose }) => {
   const [activeTab, setActiveTab] = useState("clothes");
@@ -362,6 +363,16 @@ const Product = () => {
               currency={currency}
               size="detail"
             />
+            {offerLabel(productData, currency) && (
+              <div className="mt-4 rounded-2xl border border-[#E7D3A1] bg-[#FBF6EA] px-4 py-3">
+                <p className="text-sm font-semibold text-[#1C1917]">
+                  {offerLabel(productData, currency)}
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-[#6B635C]">
+                  Add {productData.offerQty} pieces of this product, any sizes. Extra pieces stay at the regular price.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Divider */}

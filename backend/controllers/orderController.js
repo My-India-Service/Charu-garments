@@ -14,7 +14,6 @@ import returnRequestModel from "../models/returnRequestModel.js";
 import { roundMoney } from "../utils/wallet.js";
 import {
   consumeCoupon,
-  orderSubtotal,
   quoteCoupon,
   releaseCoupon,
 } from "../utils/coupon.js";
@@ -34,6 +33,7 @@ import {
   notifyRefunded,
   notifyStatusChanged,
 } from "../utils/orderMail.js";
+import { applyOffers } from "../utils/offer.js";
 
 // Global variables
 const currency = "inr";
@@ -82,7 +82,8 @@ const priceCheckout = async (
   deliverySpeed = "standard",
   extras = {},
 ) => {
-  const subtotal = orderSubtotal(items);
+  const offered = await applyOffers(items);
+  const subtotal = offered.subtotal;
   const quote = await quoteCoupon(couponCode, subtotal);
   if (!quote.ok) throw new Error(quote.message);
 
@@ -134,6 +135,8 @@ const priceCheckout = async (
     affiliateCode: affiliate.code,
     affiliateId: affiliate.id,
     affiliateCommission: affiliate.commission,
+    items: offered.items,
+    offerDiscount: offered.offerDiscount,
   };
 };
 
@@ -180,7 +183,7 @@ const placeOrder = async (req, res) => {
 
     const orderData = {
       userId,
-      items,
+      items: priced.items,
       address,
       amount: priced.amount,
       couponDiscount: priced.couponDiscount,
@@ -200,7 +203,7 @@ const placeOrder = async (req, res) => {
 
     try {
       await attachCoupon(newOrder, priced);
-      await holdOrder(newOrder, items, useWallet);
+      await holdOrder(newOrder, priced.items, useWallet);
     } catch (stockError) {
       await releaseHeldOrder(await orderModel.findById(newOrder._id));
       throw stockError;
@@ -239,7 +242,7 @@ const placeOrderStripe = async (req, res) => {
 
     const orderData = {
       userId,
-      items,
+      items: priced.items,
       address,
       amount: priced.amount,
       couponDiscount: priced.couponDiscount,
@@ -260,7 +263,7 @@ const placeOrderStripe = async (req, res) => {
     let payable = priced.amount;
     try {
       await attachCoupon(newOrder, priced);
-      payable = await holdOrder(newOrder, items, useWallet);
+      payable = await holdOrder(newOrder, priced.items, useWallet);
     } catch (stockError) {
       await releaseHeldOrder(await orderModel.findById(newOrder._id));
       throw stockError;
@@ -274,7 +277,7 @@ const placeOrderStripe = async (req, res) => {
     }
 
     const line_items =
-      newOrder.walletUsed > 0 || newOrder.couponDiscount > 0
+      newOrder.walletUsed > 0 || newOrder.couponDiscount > 0 || priced.offerDiscount > 0
         ? [
             {
               price_data: {
@@ -286,7 +289,7 @@ const placeOrderStripe = async (req, res) => {
             },
           ]
         : [
-            ...items.map((item) => ({
+            ...priced.items.map((item) => ({
               price_data: {
                 currency: currency,
                 product_data: { name: item.name },
@@ -389,7 +392,7 @@ const placeOrderRazorpay = async (req, res) => {
 
     const orderData = {
       userId,
-      items,
+      items: priced.items,
       address,
       amount: priced.amount,
       couponDiscount: priced.couponDiscount,
@@ -410,7 +413,7 @@ const placeOrderRazorpay = async (req, res) => {
     let payable = priced.amount;
     try {
       await attachCoupon(newOrder, priced);
-      payable = await holdOrder(newOrder, items, useWallet);
+      payable = await holdOrder(newOrder, priced.items, useWallet);
     } catch (stockError) {
       await releaseHeldOrder(await orderModel.findById(newOrder._id));
       throw stockError;

@@ -276,6 +276,8 @@ const Collection = () => {
                 name={item.name}
                 price={item.price}
                 mrp={item.mrp}
+            offerQty={item.offerQty}
+            offerPrice={item.offerPrice}
               />
             ))}
           </div>

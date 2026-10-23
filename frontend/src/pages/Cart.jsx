@@ -5,6 +5,7 @@ import { assets } from "../assets/assets";
 import CartTotal from "../components/CartTotal";
 import PriceTag from "../components/PriceTag";
 import { useNavigate } from "react-router-dom";
+import { cartOfferPricing, offerLabel } from "../utils/offer";
 
 const Cart = () => {
   const navigate = useNavigate();
@@ -35,6 +36,8 @@ const Cart = () => {
       updateQuantity(id, size, value);
     }
   };
+
+  const pricedCart = cartOfferPricing(products, cartItems);
 
   return (
     <div className="border-t border-gray-200 pt-10 sm:pt-14 px-4 sm:px-0">
@@ -111,6 +114,17 @@ const Cart = () => {
                     {item.size}
                   </span>
                 </div>
+                {offerLabel(productData, currency) && (
+                  <p className="mt-1.5 text-[11px] font-semibold text-[#7A3030]">
+                    {offerLabel(productData, currency)}
+                    {(() => {
+                      const line = pricedCart.lines.find(
+                        (row) => row._id === item._id && row.size === item.size,
+                      );
+                      return line?.offerApplied ? ` · this line ${currency}${line.lineTotal}` : "";
+                    })()}
+                  </p>
+                )}
 
                 {/* Mobile: quantity + delete */}
                 <div className="flex items-center gap-3 mt-3 sm:hidden">

@@ -76,6 +76,8 @@ const Add = ({ token }) => {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [mrp, setMrp] = useState("");
+  const [offerQty, setOfferQty] = useState("");
+  const [offerPrice, setOfferPrice] = useState("");
   const [category, setCategory] = useState("");
   const [subCategory, setSubCategory] = useState("");
   const [categories, setCategories] = useState([]);
@@ -172,6 +174,16 @@ const Add = ({ token }) => {
       return;
     }
 
+    if ((offerQty || offerPrice) && (Number(offerQty) < 2 || Number(offerPrice) <= 0)) {
+      toast.error("Special offer needs at least 2 pieces and a price");
+      return;
+    }
+
+    if (Number(offerQty) >= 2 && Number(offerPrice) >= Number(offerQty) * Number(price)) {
+      toast.error("Offer price must be less than the regular total");
+      return;
+    }
+
     setLoading(true);
     try {
       const formData = new FormData();
@@ -179,6 +191,8 @@ const Add = ({ token }) => {
       formData.append("description", description);
       formData.append("price", price);
       formData.append("mrp", mrp || 0);
+      formData.append("offerQty", offerQty || 0);
+      formData.append("offerPrice", offerPrice || 0);
       formData.append("category", category);
       formData.append("subCategory", subCategory);
       formData.append("bestseller", bestseller);
@@ -209,6 +223,8 @@ const Add = ({ token }) => {
         setDescription("");
         setPrice("");
         setMrp("");
+        setOfferQty("");
+        setOfferPrice("");
         setCategory(activeCategories[0]?.name || "");
         setSubCategory(activeSubs[0]?.name || "");
         setBestseller(false);
@@ -374,6 +390,43 @@ const Add = ({ token }) => {
               MRP ₹{mrp} · customer pays ₹{price}
             </p>
           )}
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass} htmlFor="offerQty">
+                Special offer pieces
+              </label>
+              <input
+                id="offerQty"
+                className={inputClass}
+                type="number"
+                min="2"
+                placeholder="e.g. 2"
+                value={offerQty}
+                onChange={(e) => setOfferQty(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className={labelClass} htmlFor="offerPrice">
+                Special offer price (₹)
+              </label>
+              <input
+                id="offerPrice"
+                className={inputClass}
+                type="number"
+                min="0"
+                placeholder="e.g. 899"
+                value={offerPrice}
+                onChange={(e) => setOfferPrice(e.target.value)}
+              />
+            </div>
+          </div>
+          {Number(offerQty) >= 2 &&
+            Number(offerPrice) > 0 &&
+            Number(offerPrice) < Number(offerQty) * Number(price) && (
+              <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">
+                Special Offer: {offerQty} Pieces @ ₹{offerPrice}
+              </p>
+            )}
         </div>
 
         {/* Sizes */}
