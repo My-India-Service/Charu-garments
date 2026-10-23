@@ -193,8 +193,8 @@ const Product = () => {
   }, [productId]);
 
   const handleAddToCart = () => {
-    if (!token) {
-      toast.error("Please login to add items to cart");
+    if (!token && !localStorage.getItem("token")) {
+      toast.error("Please login to add items to cart", { duration: 3500 });
       navigate("/login");
       return;
     }

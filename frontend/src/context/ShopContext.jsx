@@ -27,9 +27,14 @@ const ShopContextProvider = (props) => {
   const freeAbove = Number(deliverySettings.freeAbove || 0);
 
   const addToCart = async (itemId, size) => {
+    if (!token && !localStorage.getItem("token")) {
+      toast.error("Please login to add items to cart");
+      return false;
+    }
+
     if (!size) {
       toast.error("Select Product Size");
-      return;
+      return false;
     }
 
     const product = products.find((item) => item._id === itemId);

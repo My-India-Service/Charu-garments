@@ -39,31 +39,41 @@ export const PromoSlider = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const promo = promos[index];
+  const show = (next) => setIndex((next + promos.length) % promos.length);
 
   return (
     <section className="pt-6">
-      <div className="relative overflow-hidden rounded-2xl shadow-[0_18px_50px_rgba(17,17,17,0.12)]">
-        <Link to={promo.to} className="block">
-          <img
-            src={promo.src}
-            alt={promo.alt}
-            className="w-full h-auto object-cover transition-transform duration-700 hover:scale-[1.015]"
-          />
-        </Link>
+      <div className="relative aspect-[747/240] overflow-hidden rounded-2xl bg-[#1C1917] shadow-[0_18px_50px_rgba(17,17,17,0.12)]">
+        {promos.map((promo, itemIndex) => (
+          <Link
+            key={promo.alt}
+            to={promo.to}
+            aria-hidden={itemIndex !== index}
+            tabIndex={itemIndex === index ? 0 : -1}
+            className={`absolute inset-0 block transition-opacity duration-500 ${
+              itemIndex === index ? "opacity-100" : "pointer-events-none opacity-0"
+            }`}
+          >
+            <img
+              src={promo.src}
+              alt={promo.alt}
+              className="h-full w-full object-cover object-center"
+            />
+          </Link>
+        ))}
         <button
           type="button"
           aria-label="Previous offer"
-          onClick={() => setIndex((current) => (current + promos.length - 1) % promos.length)}
-          className="absolute left-3 top-1/2 -translate-y-1/2 hidden sm:flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-gray-900 shadow"
+          onClick={() => show(index - 1)}
+          className="absolute left-3 top-1/2 z-10 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-900 shadow sm:flex"
         >
           ‹
         </button>
         <button
           type="button"
           aria-label="Next offer"
-          onClick={() => setIndex((current) => (current + 1) % promos.length)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-gray-900 shadow"
+          onClick={() => show(index + 1)}
+          className="absolute right-3 top-1/2 z-10 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-900 shadow sm:flex"
         >
           ›
         </button>

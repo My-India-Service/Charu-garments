@@ -11,9 +11,11 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <Toaster
       position="top-center"
       containerStyle={{
-        top: 20,
+        top: 88,
+        zIndex: 99999,
       }}
       toastOptions={{
+        duration: 3000,
         style: {
           fontSize: "14px",
         },

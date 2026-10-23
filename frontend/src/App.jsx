@@ -1,6 +1,5 @@
 import React from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
-import { Toaster } from "react-hot-toast";
 
 import Home from "./pages/Home";
 import Collection from "./pages/Collection";
@@ -32,12 +31,6 @@ const App = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F4F0EA] text-[#1C1917]">
-      <Toaster
-        position="top-center"
-        reverseOrder={false}
-        toastOptions={{ duration: 2000 }}
-      />
-
       <header className="sticky top-0 z-40 border-b border-[#E6DFD6] bg-[#F4F0EA]/90 backdrop-blur-md">
         <div className="bg-[#1C1917] px-4 py-2 text-center text-[11px] uppercase tracking-[0.22em] text-[#F4F0EA]">
           Free store pickup · New season 2026 · Easy 7-day exchange
