@@ -155,7 +155,7 @@ const Collection = () => {
   return (
     <div className="flex flex-col sm:flex-row gap-0 sm:gap-10 pt-10">
       {/* ── Filter Sidebar ── */}
-      <div className="w-full sm:w-60 sm:min-w-[15rem] flex-shrink-0">
+      <div className="w-full flex-shrink-0 sm:sticky sm:top-32 sm:w-60 sm:min-w-[15rem] sm:self-start">
         {/* Mobile: Filter Toggle Bar */}
         <button
           onClick={() => setShowFilter(!showFilter)}
@@ -245,13 +245,13 @@ const Collection = () => {
           />
         )}
         {/* Header row */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <Title text1={"ALL"} text2={"COLLECTIONS"} />
 
           <select
             onChange={(e) => setSortType(e.target.value)}
             value={sortType}
-            className="text-xs sm:text-sm border border-gray-200 bg-white text-gray-600 px-3 py-2 rounded outline-none hover:border-gray-400 transition-colors cursor-pointer"
+            className="cursor-pointer rounded-full border border-[#E6DFD6] bg-white px-4 py-2 text-xs text-[#3F3832] outline-none transition-colors hover:border-[#7A3030] sm:text-sm"
           >
             <option value="relevant">Relevant</option>
             <option value="low-high">Price: Low to High</option>
@@ -275,6 +275,7 @@ const Collection = () => {
                 image={item.image}
                 name={item.name}
                 price={item.price}
+                mrp={item.mrp}
               />
             ))}
           </div>

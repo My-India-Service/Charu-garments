@@ -235,7 +235,8 @@ const List = ({ token }) => {
                       {item.category}
                     </span>
                     <span className="text-xs font-semibold text-gray-600">
-                      {item.price}
+                      ₹{item.price}
+                      {Number(item.mrp) > Number(item.price) ? ` · ${Math.round(((item.mrp - item.price) / item.mrp) * 100)}% off` : ""}
                     </span>
                   </div>
                 </div>
@@ -249,7 +250,12 @@ const List = ({ token }) => {
 
                 {/* Price — desktop */}
                 <p className="hidden md:block text-sm font-semibold text-gray-700">
-                  {item.price}
+                  ₹{item.price}
+                  {Number(item.mrp) > Number(item.price) && (
+                    <span className="ml-2 rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-700">
+                      {Math.round(((item.mrp - item.price) / item.mrp) * 100)}% OFF
+                    </span>
+                  )}
                 </p>
 
                 {/* Actions */}

@@ -187,6 +187,7 @@ const EditProductModal = ({ product, token, onClose, fetchList }) => {
     name: product.name,
     description: product.description || "",
     price: product.price,
+    mrp: product.mrp || "",
     category: product.category || "Men",
     subCategory: product.subCategory || "Topwear",
     sizes: product.sizes || [],
@@ -298,6 +299,11 @@ const EditProductModal = ({ product, token, onClose, fetchList }) => {
       return;
     }
 
+    if (editForm.mrp && Number(editForm.mrp) <= Number(editForm.price)) {
+      toast.error("MRP must be higher than the selling price");
+      return;
+    }
+
     setEditLoading(true);
     try {
       const formData = new FormData();
@@ -305,6 +311,7 @@ const EditProductModal = ({ product, token, onClose, fetchList }) => {
       formData.append("name", editForm.name);
       formData.append("description", editForm.description);
       formData.append("price", editForm.price);
+      formData.append("mrp", editForm.mrp || 0);
       formData.append("category", editForm.category);
       formData.append("subCategory", editForm.subCategory);
       formData.append("sizes", JSON.stringify(editForm.sizes));
@@ -475,20 +482,42 @@ const EditProductModal = ({ product, token, onClose, fetchList }) => {
             </div>
           </div>
 
-          {/* Price */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-              Price ({currency})
-            </label>
-            <input
-              type="number"
-              min="0"
-              value={editForm.price}
-              onChange={onFieldChange("price")}
-              placeholder="0"
-              className="w-full rounded-2xl border border-gray-200 px-4 py-3.5 text-[15px] text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-all"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                Selling price ({currency})
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={editForm.price}
+                onChange={onFieldChange("price")}
+                placeholder="Customer pays this"
+                className="w-full rounded-2xl border border-gray-200 px-4 py-3.5 text-[15px] text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                MRP ({currency})
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={editForm.mrp}
+                onChange={onFieldChange("mrp")}
+                placeholder="Optional, for discount"
+                className="w-full rounded-2xl border border-gray-200 px-4 py-3.5 text-[15px] text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-all"
+              />
+            </div>
           </div>
+          {Number(editForm.mrp) > Number(editForm.price) && Number(editForm.price) > 0 && (
+            <p className="inline-flex items-center gap-2 rounded-full bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-700">
+              <span className="rounded-full bg-rose-700 px-1.5 py-0.5 text-[10px] text-white">
+                {Math.round(((Number(editForm.mrp) - Number(editForm.price)) / Number(editForm.mrp)) * 100)}% OFF
+              </span>
+              Shows as a discount on the store
+            </p>
+          )}
 
           {/* Sizes */}
           <div>

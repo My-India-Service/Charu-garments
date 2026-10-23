@@ -87,14 +87,15 @@ export const PromoSlider = () => {
 
 export const CategoryBanners = () => {
   return (
-    <section className="my-14 sm:my-16">
-      <div className="mb-6 text-center">
-        <p className="text-[11px] font-medium uppercase tracking-[0.32em] text-gray-400">
+    <section className="my-16 sm:my-20">
+      <div className="mb-8 flex flex-col items-center gap-2 text-center">
+        <p className="text-[11px] font-medium uppercase tracking-[0.32em] text-[#8A8178]">
           Shop by category
         </p>
-        <h2 className="mt-2 text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900">
+        <h2 className="prata-regular text-3xl text-[#1C1917] sm:text-4xl">
           Find your look
         </h2>
+        <span className="mt-1 h-px w-12 bg-[#7A3030]" />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {categories.map((item) => (

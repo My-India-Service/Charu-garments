@@ -66,8 +66,8 @@ const Login = () => {
   }, [token]);
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center bg-white px-4 py-10">
-      <div className="w-full max-w-md bg-white border border-gray-100 rounded-2xl shadow-lg p-8">
+    <div className="flex min-h-[80vh] items-center justify-center px-4 py-10">
+      <div className="w-full max-w-md rounded-3xl border border-[#E6DFD6] bg-[#FBF9F6] p-8 shadow-[0_18px_50px_rgba(28,25,23,0.06)]">
         <div className="text-center mb-8">
           <img
             src={assets.logo}

@@ -20,41 +20,33 @@ const NewsletterBox = () => {
   };
 
   return (
-    <div className="text-center px-4 sm:px-0 py-12 sm:py-16">
-      {/* Eyebrow line */}
-      <div className="flex items-center justify-center gap-3 mb-4">
-        <span className="w-8 h-px bg-gray-300 flex-shrink-0" />
-        <p className="text-xs tracking-widest uppercase text-gray-400">
-          Newsletter
-        </p>
-        <span className="w-8 h-px bg-gray-300 flex-shrink-0" />
-      </div>
+    <div className="mb-4 rounded-3xl border border-[#E6DFD6] bg-[#FBF9F6] px-6 py-12 text-center sm:px-10 sm:py-16">
+      <p className="text-xs uppercase tracking-[0.32em] text-[#8A8178]">
+        Newsletter
+      </p>
 
-      {/* Headline */}
-      <p className="text-2xl sm:text-3xl font-medium text-gray-800 leading-snug">
+      <p className="prata-regular mt-3 text-3xl leading-snug text-[#1C1917] sm:text-4xl">
         Join the Charu Garments Community
       </p>
 
-      {/* Subtext */}
-      <p className="mt-3 mx-auto max-w-sm text-sm text-gray-400 leading-relaxed">
+      <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-[#6B635C]">
         Stay updated with the latest fashion trends, exclusive offers, and new
         arrivals from Charu Garments.
       </p>
 
-      {/* Form */}
       <form
         onSubmit={onSubmitHandler}
-        className="w-full sm:w-[480px] flex items-stretch mx-auto mt-7 border border-gray-200 overflow-hidden hover:border-gray-400 transition-colors duration-200 focus-within:border-black"
+        className="mx-auto mt-7 flex w-full items-stretch overflow-hidden rounded-full border border-[#E6DFD6] bg-white transition-colors duration-200 focus-within:border-[#7A3030] sm:w-[480px]"
       >
         <input
-          className="flex-1 min-w-0 px-4 py-3.5 text-sm outline-none bg-transparent placeholder-gray-400"
+          className="min-w-0 flex-1 bg-transparent px-5 py-3.5 text-sm outline-none placeholder:text-[#8A8178]"
           type="email"
           placeholder="Enter your email address"
           required
         />
         <button
           type="submit"
-          className="bg-black text-white text-xs tracking-widest px-7 py-3.5 flex-shrink-0 hover:bg-gray-800 active:scale-[0.98] transition-all duration-150"
+          className="flex-shrink-0 bg-[#1C1917] px-7 py-3.5 text-xs tracking-widest text-[#F4F0EA] transition-all duration-150 hover:bg-[#7A3030] active:scale-[0.98]"
         >
           SUBSCRIBE
         </button>

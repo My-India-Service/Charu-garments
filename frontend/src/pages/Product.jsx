@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { X, ShieldCheck, BadgeCheck, Truck } from "lucide-react";
 import { getProductReviews } from "../utils/reviewUtils";
+import PriceTag, { discountPercent } from "../components/PriceTag";
 
 const SizeChartModal = ({ onClose }) => {
   const [activeTab, setActiveTab] = useState("clothes");
@@ -261,18 +262,28 @@ const Product = () => {
                 alt={productData.name}
                 className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-[1.04]"
               />
+              {discountPercent(productData.price, productData.mrp) > 0 && (
+                <span className="absolute left-4 top-4 rounded-full bg-[#7A3030] px-3 py-1.5 text-xs font-semibold tracking-wide text-white shadow">
+                  {discountPercent(productData.price, productData.mrp)}% OFF
+                </span>
+              )}
             </div>
           </div>
 
           {/* Mobile: full-width main image + horizontal thumbnail strip */}
           <div className="sm:hidden flex flex-col gap-3">
             {/* Main image */}
-            <div className="w-full rounded-2xl overflow-hidden bg-[#f5f5f3] aspect-[3/4]">
+            <div className="relative w-full aspect-[3/4] overflow-hidden rounded-2xl bg-[#f5f5f3]">
               <img
                 src={image}
                 alt={productData.name}
                 className="w-full h-full object-cover object-center"
               />
+              {discountPercent(productData.price, productData.mrp) > 0 && (
+                <span className="absolute left-3 top-3 rounded-full bg-[#7A3030] px-3 py-1.5 text-xs font-semibold tracking-wide text-white shadow">
+                  {discountPercent(productData.price, productData.mrp)}% OFF
+                </span>
+              )}
             </div>
 
             {/* Horizontal thumbnail strip */}
@@ -344,11 +355,13 @@ const Product = () => {
           </div>
 
           {/* Price */}
-          <div className="flex items-baseline gap-2 mt-5">
-            <span className="text-[2rem] font-bold tracking-tight text-gray-900 leading-none">
-              {currency}
-              {productData.price}
-            </span>
+          <div className="mt-5">
+            <PriceTag
+              price={productData.price}
+              mrp={productData.mrp}
+              currency={currency}
+              size="detail"
+            />
           </div>
 
           {/* Divider */}
@@ -430,7 +443,7 @@ const Product = () => {
             disabled={!size}
             className={`mt-4 w-full py-[15px] text-[11.5px] tracking-[0.22em] font-semibold rounded-2xl transition-all duration-200 uppercase ${
               size
-                ? "bg-gray-900 text-white hover:bg-black active:scale-[0.985] shadow-md shadow-gray-200"
+                ? "bg-[#1C1917] text-[#F4F0EA] hover:bg-[#7A3030] active:scale-[0.985] shadow-md shadow-[#E6DFD6]"
                 : "bg-gray-100 text-gray-400 cursor-not-allowed"
             }`}
           >

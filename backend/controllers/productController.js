@@ -4,6 +4,17 @@ import categoryModel from "../models/categoryModel.js";
 import { ensureDefaultCategories } from "./categoryController.js";
 import { uploadBuffer } from "../utils/cloudinaryUpload.js";
 
+const parseMrp = (price, mrp) => {
+  const sale = Number(price);
+  if (mrp === undefined || mrp === null || mrp === "") return 0;
+  const original = Number(mrp);
+  if (!original) return 0;
+  if (original <= sale) {
+    throw new Error("MRP must be higher than the selling price");
+  }
+  return original;
+};
+
 // function for add product
 const addProduct = async (req, res) => {
   try {
@@ -11,6 +22,7 @@ const addProduct = async (req, res) => {
       name,
       description,
       price,
+      mrp,
       category,
       subCategory,
       sizes,
@@ -48,6 +60,7 @@ const addProduct = async (req, res) => {
       description,
       category,
       price: Number(price),
+      mrp: parseMrp(price, mrp),
       subCategory,
       bestseller: bestseller === "true" ? true : false,
       sizes: parsedSizes,
@@ -187,6 +200,7 @@ const updateProduct = async (req, res) => {
       name,
       description,
       price,
+      mrp,
       category,
       subCategory,
       sizes,
@@ -249,6 +263,9 @@ const updateProduct = async (req, res) => {
         ...(name && { name }),
         ...(description && { description }),
         ...(price && { price: Number(price) }),
+        ...(mrp !== undefined && {
+          mrp: parseMrp(price || product.price, mrp),
+        }),
         ...(category && { category }),
         ...(subCategory && { subCategory }),
         ...(sizes && { sizes: nextSizes, stock: nextStock }),

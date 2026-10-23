@@ -75,6 +75,7 @@ const Add = ({ token }) => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
+  const [mrp, setMrp] = useState("");
   const [category, setCategory] = useState("");
   const [subCategory, setSubCategory] = useState("");
   const [categories, setCategories] = useState([]);
@@ -166,12 +167,18 @@ const Add = ({ token }) => {
       return;
     }
 
+    if (mrp && Number(mrp) <= Number(price)) {
+      toast.error("MRP must be higher than the selling price");
+      return;
+    }
+
     setLoading(true);
     try {
       const formData = new FormData();
       formData.append("name", name);
       formData.append("description", description);
       formData.append("price", price);
+      formData.append("mrp", mrp || 0);
       formData.append("category", category);
       formData.append("subCategory", subCategory);
       formData.append("bestseller", bestseller);
@@ -201,6 +208,7 @@ const Add = ({ token }) => {
         setName("");
         setDescription("");
         setPrice("");
+        setMrp("");
         setCategory(activeCategories[0]?.name || "");
         setSubCategory(activeSubs[0]?.name || "");
         setBestseller(false);
@@ -291,7 +299,7 @@ const Add = ({ token }) => {
         {/* Category + Price */}
         <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 shadow-sm">
           <p className={labelClass + " mb-4"}>Category & Pricing</p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={labelClass} htmlFor="category">
                 Category
@@ -330,19 +338,42 @@ const Add = ({ token }) => {
 
             <div>
               <label className={labelClass} htmlFor="price">
-                Price (₹)
+                Selling price (₹)
               </label>
               <input
                 id="price"
                 className={inputClass}
                 type="number"
-                placeholder="0.00"
+                placeholder="Customer pays this"
                 min="0"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
               />
             </div>
+
+            <div>
+              <label className={labelClass} htmlFor="mrp">
+                MRP (₹)
+              </label>
+              <input
+                id="mrp"
+                className={inputClass}
+                type="number"
+                placeholder="Optional, for discount"
+                min="0"
+                value={mrp}
+                onChange={(e) => setMrp(e.target.value)}
+              />
+            </div>
           </div>
+          {Number(mrp) > Number(price) && Number(price) > 0 && (
+            <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-700">
+              <span className="rounded-full bg-rose-700 px-1.5 py-0.5 text-[10px] text-white">
+                {Math.round(((Number(mrp) - Number(price)) / Number(mrp)) * 100)}% OFF
+              </span>
+              MRP ₹{mrp} · customer pays ₹{price}
+            </p>
+          )}
         </div>
 
         {/* Sizes */}

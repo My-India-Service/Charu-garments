@@ -3,6 +3,7 @@ import { ShopContext } from "../context/ShopContext";
 import Title from "../components/Title";
 import { assets } from "../assets/assets";
 import CartTotal from "../components/CartTotal";
+import PriceTag from "../components/PriceTag";
 import { useNavigate } from "react-router-dom";
 
 const Cart = () => {
@@ -100,10 +101,12 @@ const Cart = () => {
                   {productData.name}
                 </p>
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1.5">
-                  <span className="text-sm font-medium text-gray-800">
-                    {currency}
-                    {productData.price}
-                  </span>
+                  <PriceTag
+                    price={productData.price}
+                    mrp={productData.mrp}
+                    currency={currency}
+                    size="line"
+                  />
                   <span className="text-xs px-2.5 py-0.5 border border-gray-200 bg-gray-50 text-gray-600 rounded-sm tracking-wider uppercase font-medium">
                     {item.size}
                   </span>

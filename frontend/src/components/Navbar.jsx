@@ -51,10 +51,9 @@ const Navbar = () => {
 
   return (
     <>
-      <div className="flex items-center justify-between py-5 sm:py-6 font-medium border-b border-gray-100">
-        {/* Logo */}
+      <div className="flex items-center justify-between py-3 sm:py-3.5 font-medium">
         <Link to="/">
-          <img src={assets.logo} className="w-16 h-16 sm:w-20 sm:h-20 object-contain" alt="Charu Garments" />
+          <img src={assets.logo} className="h-14 w-14 sm:h-16 sm:w-16 object-contain" alt="Charu Garments" />
         </Link>
 
         {/* Desktop Nav Links */}
@@ -82,7 +81,7 @@ const Navbar = () => {
                     {label}
                   </p>
                   <hr
-                    className={`border-none h-[1.5px] bg-black transition-all duration-300 ${
+                    className={`border-none h-[1.5px] bg-[#7A3030] transition-all duration-300 ${
                       isActive ? "w-2/4" : "w-0 group-hover:w-2/4"
                     }`}
                   />
@@ -174,7 +173,7 @@ const Navbar = () => {
               className="text-gray-500 hover:text-black transition-colors"
             />
             {getCartCount() > 0 && (
-              <span className="absolute -right-2 -bottom-2 w-4 h-4 bg-black text-white text-[8px] rounded-full flex items-center justify-center leading-none">
+              <span className="absolute -right-2 -bottom-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#7A3030] px-1 text-[8px] leading-none text-white">
                 {getCartCount()}
               </span>
             )}

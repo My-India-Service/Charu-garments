@@ -31,26 +31,29 @@ const App = () => {
   );
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAFAF9]">
+    <div className="min-h-screen flex flex-col bg-[#F4F0EA] text-[#1C1917]">
       <Toaster
         position="top-center"
         reverseOrder={false}
         toastOptions={{ duration: 2000 }}
       />
 
-      {/* Common Container */}
-      <div className="flex flex-col flex-1 px-4 sm:px-[5vw] md:px-[7vw] lg:px-[9vw]">
-        {/* Navbar */}
-        <Navbar />
+      <header className="sticky top-0 z-40 border-b border-[#E6DFD6] bg-[#F4F0EA]/90 backdrop-blur-md">
+        <div className="bg-[#1C1917] px-4 py-2 text-center text-[11px] uppercase tracking-[0.22em] text-[#F4F0EA]">
+          Free store pickup · New season 2026 · Easy 7-day exchange
+        </div>
+        <div className="px-4 sm:px-[5vw] md:px-[7vw] lg:px-[9vw]">
+          <Navbar />
+        </div>
+      </header>
 
-        {/* Search */}
+      <div className="flex flex-col flex-1 px-4 sm:px-[5vw] md:px-[7vw] lg:px-[9vw]">
         <SearchBar />
 
-        {/* Page Content */}
         <main className="flex-1">
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/profile" element={<Profile />} />;
+            <Route path="/profile" element={<Profile />} />
             <Route path="/wallet" element={<WalletPage />} />
             <Route path="/collection" element={<Collection />} />
             <Route path="/about" element={<About />} />
@@ -66,10 +69,9 @@ const App = () => {
             <Route path="/verify" element={<Verify />} />
           </Routes>
         </main>
-
-        {/* Footer */}
-        {showFooter && <Footer />}
       </div>
+
+      {showFooter && <Footer />}
     </div>
   );
 };
