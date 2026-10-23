@@ -42,8 +42,8 @@ export const PromoSlider = () => {
   const show = (next) => setIndex((next + promos.length) % promos.length);
 
   return (
-    <section className="pt-6">
-      <div className="relative aspect-[747/240] overflow-hidden rounded-2xl bg-[#1C1917] shadow-[0_18px_50px_rgba(17,17,17,0.12)]">
+    <section className="-mx-4 sm:-mx-[5vw] md:-mx-[7vw] lg:-mx-[9vw]">
+      <div className="relative aspect-[747/240] overflow-hidden bg-[#1C1917]">
         {promos.map((promo, itemIndex) => (
           <Link
             key={promo.alt}
