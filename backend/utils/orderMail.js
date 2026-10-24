@@ -43,7 +43,7 @@ const itemRows = (items = []) =>
           ? Number(item.lineTotal)
           : Number(item.price || 0) * qty;
       return `<tr>
-        <td style="padding:10px 0;border-bottom:1px solid #eee;color:#111;">${esc(item.name)}${item.size ? ` <span style="color:#666;">· ${esc(item.size)}</span>` : ""}</td>
+        <td style="padding:10px 0;border-bottom:1px solid #eee;color:#111;">${esc(item.name)}${item.color ? ` <span style="color:#666;">· ${esc(item.color)}</span>` : ""}${item.size ? ` <span style="color:#666;">· ${esc(item.size)}</span>` : ""}</td>
         <td style="padding:10px 0;border-bottom:1px solid #eee;color:#666;text-align:center;">${qty}</td>
         <td style="padding:10px 0;border-bottom:1px solid #eee;color:#111;text-align:right;">${esc(inr(line))}</td>
       </tr>`;

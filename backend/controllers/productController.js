@@ -33,6 +33,36 @@ const parseOffer = (price, offerQty, offerPrice) => {
   return { offerQty: pieces, offerPrice: deal };
 };
 
+const parseColors = (raw) => {
+  if (raw === undefined || raw === null || raw === "") return [];
+  const rows = typeof raw === "string" ? JSON.parse(raw) : raw;
+  const seen = new Set();
+  return (Array.isArray(rows) ? rows : [])
+    .map((row) => ({
+      name: String(row?.name || "").trim(),
+      hex: /^#[0-9a-fA-F]{6}$/.test(row?.hex || "") ? row.hex : "#1C1917",
+    }))
+    .filter((row) => {
+      const key = row.name.toLowerCase();
+      if (!row.name || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+};
+
+const parseStock = (raw, sizes, colors) => {
+  const rows = raw ? (typeof raw === "string" ? JSON.parse(raw) : raw) : [];
+  const names = new Set((colors || []).map((color) => color.name));
+  return (Array.isArray(rows) ? rows : [])
+    .filter((row) => sizes.includes(row.size))
+    .map((row) => ({
+      size: row.size,
+      color: names.has(row.color) ? row.color : "",
+      quantity: Math.max(0, Number(row.quantity) || 0),
+    }))
+    .filter((row) => (names.size ? names.has(row.color) : !row.color));
+};
+
 // function for add product
 const addProduct = async (req, res) => {
   try {
@@ -46,6 +76,7 @@ const addProduct = async (req, res) => {
       category,
       subCategory,
       sizes,
+      colors,
       bestseller,
       stock,
     } = req.body;
@@ -66,14 +97,8 @@ const addProduct = async (req, res) => {
     );
 
     const parsedSizes = JSON.parse(sizes);
-    const parsedStock = stock
-      ? JSON.parse(stock)
-          .filter((row) => parsedSizes.includes(row.size))
-          .map((row) => ({
-            size: row.size,
-            quantity: Math.max(0, Number(row.quantity) || 0),
-          }))
-      : [];
+    const parsedColors = parseColors(colors);
+    const parsedStock = parseStock(stock, parsedSizes, parsedColors);
 
     const productData = {
       name,
@@ -85,6 +110,7 @@ const addProduct = async (req, res) => {
       subCategory,
       bestseller: bestseller === "true" ? true : false,
       sizes: parsedSizes,
+      colors: parsedColors,
       stock: parsedStock,
       image: imagesUrl,
       date: Date.now(),
@@ -98,7 +124,7 @@ const addProduct = async (req, res) => {
         parsedStock.map((row) => ({
           productId: String(product._id),
           productName: product.name,
-          size: row.size,
+          size: row.color ? `${row.color} / ${row.size}` : row.size,
           action: "set",
           quantity: row.quantity,
           previousQty: 0,
@@ -227,6 +253,8 @@ const updateProduct = async (req, res) => {
       category,
       subCategory,
       sizes,
+      colors,
+      stock,
       bestseller,
       removeImages,
     } = req.body;
@@ -270,12 +298,17 @@ const updateProduct = async (req, res) => {
         : JSON.parse(sizes)
       : product.sizes;
 
+    const nextColors =
+      colors !== undefined ? parseColors(colors) : product.colors || [];
+
     let nextStock = product.stock || [];
-    if (sizes && nextStock.length) {
+    if (stock !== undefined) {
+      nextStock = parseStock(stock, nextSizes, nextColors);
+    } else if (sizes && nextStock.length) {
       const kept = nextStock.filter((row) => nextSizes.includes(row.size));
-      const known = new Set(kept.map((row) => row.size));
+      const known = new Set(kept.map((row) => `${row.color || ""}::${row.size}`));
       nextSizes.forEach((size) => {
-        if (!known.has(size)) kept.push({ size, quantity: 0 });
+        if (!known.has(`::${size}`)) kept.push({ size, color: "", quantity: 0 });
       });
       nextStock = kept;
     }
@@ -293,7 +326,7 @@ const updateProduct = async (req, res) => {
           parseOffer(price || product.price, offerQty, offerPrice)),
         ...(category && { category }),
         ...(subCategory && { subCategory }),
-        ...(sizes && { sizes: nextSizes, stock: nextStock }),
+        ...(sizes && { sizes: nextSizes, colors: nextColors, stock: nextStock }),
         ...(bestseller !== undefined && {
           bestseller: bestseller === "true",
         }),

@@ -17,6 +17,7 @@ import deliveryRouter from "./routes/deliveryRoute.js";
 import siteSettingRouter from "./routes/siteSettingRoute.js";
 import referralRouter from "./routes/referralRoute.js";
 import affiliateRouter from "./routes/affiliateRoute.js";
+import feedbackRouter from "./routes/feedbackRoute.js";
 import { robots, sitemap } from "./controllers/seoController.js";
 
 // App Config
@@ -52,6 +53,7 @@ app.use("/api/delivery", deliveryRouter);
 app.use("/api/settings", siteSettingRouter);
 app.use("/api/referral", referralRouter);
 app.use("/api/affiliate", affiliateRouter);
+app.use("/api/feedback", feedbackRouter);
 app.get("/robots.txt", robots);
 app.get("/sitemap.xml", sitemap);
 

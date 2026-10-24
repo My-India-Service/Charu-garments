@@ -624,7 +624,7 @@ const Orders = ({ token }) => {
                           <span className="mx-1 text-slate-300">·</span>×
                           {item.quantity}
                           <span className="ml-1 text-slate-400">
-                            ({item.size})
+                            ({item.color ? `${item.color} / ${item.size}` : item.size})
                           </span>
                         </span>
                       ))}

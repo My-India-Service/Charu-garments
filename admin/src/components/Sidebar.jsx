@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { PlusCircle, List, ClipboardList, Boxes, Undo2, Tags, Megaphone, Truck, Settings, Gift, Handshake, X } from "lucide-react";
+import { PlusCircle, List, ClipboardList, Boxes, Undo2, Tags, Megaphone, Truck, Settings, Gift, Handshake, MessageSquare, X } from "lucide-react";
 
 const navItems = [
   { to: "/add", icon: PlusCircle, label: "Add Items" },
@@ -13,6 +13,7 @@ const navItems = [
   { to: "/delivery", icon: Truck, label: "Delivery" },
   { to: "/referrals", icon: Gift, label: "Referrals" },
   { to: "/affiliates", icon: Handshake, label: "Affiliates" },
+  { to: "/feedback", icon: MessageSquare, label: "Feedback" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ];
 

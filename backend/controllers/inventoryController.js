@@ -64,10 +64,11 @@ const getInventory = async (req, res) => {
 
 const adjustStock = async (req, res) => {
   try {
-    const { productId, size, action, quantity, note } = req.body;
+    const { productId, size, color = "", action, quantity, note } = req.body;
     const product = await adjustStockEntry({
       productId,
       size,
+      color,
       action,
       quantity,
       note,

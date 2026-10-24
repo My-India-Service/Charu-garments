@@ -11,10 +11,20 @@ const productSchema = new mongoose.Schema({
   category: { type: String, required: true },
   subCategory: { type: String, required: true },
   sizes: { type: Array, required: true },
+  colors: {
+    type: [
+      {
+        name: { type: String, required: true },
+        hex: { type: String, default: "#1C1917" },
+      },
+    ],
+    default: [],
+  },
   stock: {
     type: [
       {
         size: { type: String, required: true },
+        color: { type: String, default: "" },
         quantity: { type: Number, required: true, min: 0, default: 0 },
       },
     ],

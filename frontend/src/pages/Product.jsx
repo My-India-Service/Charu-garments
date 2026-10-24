@@ -9,6 +9,7 @@ import { X, ShieldCheck, BadgeCheck, Truck } from "lucide-react";
 import { getProductReviews } from "../utils/reviewUtils";
 import PriceTag, { discountPercent } from "../components/PriceTag";
 import { offerLabel } from "../utils/offer";
+import { findStock } from "../utils/variant";
 
 const SizeChartModal = ({ onClose }) => {
   const [activeTab, setActiveTab] = useState("clothes");
@@ -163,6 +164,7 @@ const Product = () => {
   const [productData, setProductData] = useState(false);
   const [image, setImage] = useState("");
   const [size, setSize] = useState("");
+  const [color, setColor] = useState("");
   const [activeTab, setActiveTab] = useState("description");
   const [showSizeChart, setShowSizeChart] = useState(false);
   const productReviews = productData ? getProductReviews(productData._id) : [];
@@ -180,6 +182,7 @@ const Product = () => {
       setProductData(product);
       setImage(product.image[0]);
       setSize("");
+      setColor(product.colors?.[0]?.name || "");
     }
   };
 
@@ -199,19 +202,25 @@ const Product = () => {
       return;
     }
 
+    const colors = productData.colors || [];
+    if (colors.length && !color) {
+      toast.error("Please select a color");
+      return;
+    }
+
     if (!size) {
       toast.error("Please select a size");
       return;
     }
 
     const stockRows = productData.stock || [];
-    const stockRow = stockRows.find((row) => row.size === size);
+    const stockRow = findStock(productData, size, colors.length ? color : "");
     if (stockRows.length && (!stockRow || stockRow.quantity < 1)) {
-      toast.error("This size is out of stock");
+      toast.error("This option is out of stock");
       return;
     }
 
-    addToCart(productData._id, size).then((added) => {
+    addToCart(productData._id, size, colors.length ? color : "").then((added) => {
       if (added !== false) {
         toast.success("Added to cart", { duration: 2000 });
       }
@@ -369,7 +378,7 @@ const Product = () => {
                   {offerLabel(productData, currency)}
                 </p>
                 <p className="mt-1 text-xs leading-relaxed text-[#6B635C]">
-                  Add {productData.offerQty} pieces of this product, any sizes. Extra pieces stay at the regular price.
+                  Add {productData.offerQty} pieces of this product, any {(productData.colors || []).length ? "color or size" : "size"}. Extra pieces stay at the regular price.
                 </p>
               </div>
             )}
@@ -382,6 +391,47 @@ const Product = () => {
           <p className="text-[13.5px] text-gray-500 leading-[1.9]">
             {productData.description}
           </p>
+
+          {(productData.colors || []).length > 0 && (
+            <div className="mt-7">
+              <div className="mb-3.5 flex items-center gap-2">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.15em] text-gray-800">
+                  Select Color
+                </span>
+                {color && (
+                  <span className="text-[11px] font-normal normal-case tracking-normal text-gray-400">
+                    — {color}
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {productData.colors.map((item) => {
+                  const active = item.name === color;
+                  return (
+                    <button
+                      key={item.name}
+                      type="button"
+                      onClick={() => {
+                        setColor(item.name);
+                        setSize("");
+                      }}
+                      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[12px] ${
+                        active
+                          ? "border-gray-900 bg-gray-900 text-white"
+                          : "border-gray-200 bg-white text-gray-700"
+                      }`}
+                    >
+                      <span
+                        className="h-4 w-4 rounded-full border border-black/15"
+                        style={{ background: item.hex || "#1C1917" }}
+                      />
+                      {item.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Size Selector */}
           <div className="mt-7">
@@ -407,7 +457,8 @@ const Product = () => {
             <div className="flex flex-wrap gap-2">
               {productData.sizes.map((item, index) => {
                 const stockRows = productData.stock || [];
-                const stockRow = stockRows.find((row) => row.size === item);
+                const pickedColor = (productData.colors || []).length ? color : "";
+                const stockRow = findStock(productData, item, pickedColor);
                 const outOfStock =
                   stockRows.length > 0 && (!stockRow || stockRow.quantity === 0);
                 const low =
@@ -451,9 +502,9 @@ const Product = () => {
           {/* Add to Cart CTA */}
           <button
             onClick={handleAddToCart}
-            disabled={!size}
+            disabled={!size || ((productData.colors || []).length > 0 && !color)}
             className={`mt-4 w-full py-[15px] text-[11.5px] tracking-[0.22em] font-semibold rounded-2xl transition-all duration-200 uppercase ${
-              size
+              size && ((productData.colors || []).length === 0 || color)
                 ? "bg-[#1C1917] text-[#F4F0EA] hover:bg-[#7A3030] active:scale-[0.985] shadow-md shadow-[#E6DFD6]"
                 : "bg-gray-100 text-gray-400 cursor-not-allowed"
             }`}

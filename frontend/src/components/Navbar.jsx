@@ -63,6 +63,7 @@ const Navbar = () => {
             { to: "/collection", label: "COLLECTION" },
             { to: "/about", label: "ABOUT" },
             { to: "/contact", label: "CONTACT" },
+            { to: "/feedback", label: "FEEDBACK" },
           ].map(({ to, label }) => (
             <NavLink
               key={to}
@@ -230,6 +231,7 @@ const Navbar = () => {
             { to: "/collection", label: "Collection" },
             { to: "/about", label: "About" },
             { to: "/contact", label: "Contact" },
+            { to: "/feedback", label: "Feedback" },
           ].map(({ to, label }) => (
             <NavLink
               key={to}

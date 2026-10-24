@@ -214,6 +214,22 @@ const List = ({ token }) => {
                   <p className="text-sm font-medium text-gray-800 truncate">
                     {item.name}
                   </p>
+                  {(item.colors || []).length > 0 && (
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                      {item.colors.map((color) => (
+                        <span
+                          key={color.name}
+                          className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] text-gray-600"
+                        >
+                          <span
+                            className="h-2.5 w-2.5 rounded-full border border-black/10"
+                            style={{ background: color.hex || "#1C1917" }}
+                          />
+                          {color.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   <div className="flex items-center gap-2 mt-0.5">
                     <span
                       className={`text-[10px] font-medium rounded-full px-2 py-0.5 ${

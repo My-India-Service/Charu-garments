@@ -2,6 +2,7 @@ import axios from "axios";
 import React, { useEffect, useRef, useState } from "react";
 import { backendUrl, currency } from "../App";
 import { toast } from "react-hot-toast";
+import ColorFields, { buildStock, stockIsComplete, stockKey } from "./ColorFields";
 
 const TOPWEAR_SIZES = ["S", "M", "L", "XL", "XXL"];
 const BOTTOMWEAR_SIZES = ["28", "30", "32", "34", "36"];
@@ -202,6 +203,19 @@ const EditProductModal = ({ product, token, onClose, fetchList }) => {
   });
   const [editLoading, setEditLoading] = useState(false);
   const [categories, setCategories] = useState([]);
+  const [colors, setColors] = useState(
+    (product.colors || []).map((color) => ({
+      name: color.name,
+      hex: color.hex || "#1C1917",
+    })),
+  );
+  const [stockQty, setStockQty] = useState(() => {
+    const qty = {};
+    (product.stock || []).forEach((row) => {
+      qty[stockKey(row.color || "", row.size)] = row.quantity;
+    });
+    return qty;
+  });
   const modalRef = useRef(null);
 
   const activeCategories = categories.filter((item) => item.active !== false);
@@ -319,6 +333,14 @@ const EditProductModal = ({ product, token, onClose, fetchList }) => {
       toast.error("Offer price must be less than the regular total");
       return;
     }
+    if (editForm.sizes.length && !stockIsComplete(colors, editForm.sizes, stockQty)) {
+      toast.error(
+        colors.length
+          ? "Enter stock for every color and size"
+          : "Enter a stock quantity for every selected size",
+      );
+      return;
+    }
 
     setEditLoading(true);
     try {
@@ -333,6 +355,11 @@ const EditProductModal = ({ product, token, onClose, fetchList }) => {
       formData.append("category", editForm.category);
       formData.append("subCategory", editForm.subCategory);
       formData.append("sizes", JSON.stringify(editForm.sizes));
+      formData.append("colors", JSON.stringify(colors));
+      formData.append(
+        "stock",
+        JSON.stringify(buildStock(colors, editForm.sizes, stockQty)),
+      );
       formData.append("bestseller", editForm.bestseller);
       formData.append("removeImages", JSON.stringify(editForm.removeImages));
 
@@ -605,6 +632,35 @@ const EditProductModal = ({ product, token, onClose, fetchList }) => {
               })}
             </div>
           </div>
+
+          {editForm.sizes.length > 0 && colors.length === 0 && (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {editForm.sizes.map((size) => (
+                <label key={size} className="block">
+                  <span className="text-xs font-medium text-gray-500">{size} stock</span>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={stockQty[size] ?? ""}
+                    onChange={(e) =>
+                      setStockQty((qty) => ({ ...qty, [size]: e.target.value }))
+                    }
+                    className="mt-1 w-full rounded-2xl border border-gray-200 px-4 py-3 text-[15px] text-gray-900"
+                  />
+                </label>
+              ))}
+            </div>
+          )}
+
+          <ColorFields
+            colors={colors}
+            setColors={setColors}
+            sizes={editForm.sizes}
+            stockQty={stockQty}
+            setStockQty={setStockQty}
+            inputClass="w-full rounded-2xl border border-gray-200 px-4 py-3 text-[15px] text-gray-900"
+          />
 
           {/* Bestseller */}
           <label className="flex items-center justify-between rounded-2xl border border-gray-200 px-4 sm:px-5 py-4 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors select-none">

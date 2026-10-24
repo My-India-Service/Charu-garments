@@ -38,6 +38,7 @@ const Footer = () => {
               { label: "About Us", to: "/about" },
               { label: "Collection", to: "/collection" },
               { label: "Contact", to: "/contact" },
+              { label: "Feedback", to: "/feedback" },
             ].map(({ label, to }) => (
               <li key={label}>
                 <Link
@@ -88,6 +89,10 @@ const Footer = () => {
         <div className="flex items-center gap-4 text-[11px] text-[#8A8178]">
           <Link to="/contact" className="transition-colors hover:text-white">
             Contact
+          </Link>
+          <span className="h-3 w-px bg-white/15" />
+          <Link to="/feedback" className="transition-colors hover:text-white">
+            Feedback
           </Link>
           <span className="h-3 w-px bg-white/15" />
           <Link to="/about" className="transition-colors hover:text-white">

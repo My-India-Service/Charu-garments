@@ -1,4 +1,5 @@
 import React, { useContext } from "react";
+import { Link } from "react-router-dom";
 import Title from "../components/Title";
 import { assets } from "../assets/assets";
 import NewsletterBox from "../components/NewsletterBox";
@@ -45,7 +46,11 @@ const Contact = () => {
 
         <p className="mt-3 text-sm text-gray-500 max-w-xl mx-auto leading-7">
           Have a question about an order, sizing, or our latest collection?
-          We're always happy to help.
+          We're always happy to help. You can also{" "}
+          <Link to="/feedback" className="text-[#7A3030] underline underline-offset-2">
+            share feedback
+          </Link>
+          .
         </p>
       </div>
 

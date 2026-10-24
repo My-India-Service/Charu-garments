@@ -34,10 +34,26 @@ const STATUS_LABEL = {
   untracked: "Not tracked",
 };
 
-const sizeQty = (product, size) => {
-  const row = (product.stock || []).find((item) => item.size === size);
+const sizeQty = (product, size, color = "") => {
+  const row = (product.stock || []).find(
+    (item) => item.size === size && String(item.color || "") === String(color || ""),
+  );
   return row ? row.quantity : null;
 };
+
+const stockRowsFor = (product) => {
+  const stock = product.stock || [];
+  if (stock.length) {
+    return stock.map((row) => ({
+      size: row.size,
+      color: row.color || "",
+      qty: row.quantity,
+    }));
+  }
+  return (product.sizes || []).map((size) => ({ size, color: "", qty: null }));
+};
+
+const rowLabel = (row) => (row.color ? `${row.color} / ${row.size}` : `Size ${row.size}`);
 
 const Inventory = ({ token }) => {
   const [products, setProducts] = useState([]);
@@ -49,6 +65,7 @@ const Inventory = ({ token }) => {
   const [activeId, setActiveId] = useState(null);
   const [form, setForm] = useState({
     size: "",
+    color: "",
     action: "add",
     quantity: "",
     note: "",
@@ -93,15 +110,11 @@ const Inventory = ({ token }) => {
   }, [products, query, filter]);
 
   const openAdjust = (product) => {
-    const sizes = [
-      ...new Set([
-        ...(product.sizes || []),
-        ...(product.stock || []).map((row) => row.size),
-      ]),
-    ];
+    const rows = stockRowsFor(product);
     setActiveId(product._id);
     setForm({
-      size: sizes[0] || "",
+      size: rows[0]?.size || "",
+      color: rows[0]?.color || "",
       action: product.stock?.length ? "add" : "set",
       quantity: "",
       note: "",
@@ -121,6 +134,7 @@ const Inventory = ({ token }) => {
         {
           productId: activeId,
           size: form.size,
+          color: form.color || "",
           action: form.action,
           quantity: Number(form.quantity),
           note: form.note,
@@ -142,13 +156,14 @@ const Inventory = ({ token }) => {
     }
   };
 
-  const quickChange = async (product, size, direction) => {
+  const quickChange = async (product, size, color, direction) => {
     try {
       const response = await axios.post(
         `${backendUrl}/api/inventory/adjust`,
         {
           productId: product._id,
           size,
+          color: color || "",
           action: direction > 0 ? "add" : "remove",
           quantity: 1,
           note: direction > 0 ? "Quick restock" : "Quick removal",
@@ -286,12 +301,7 @@ const Inventory = ({ token }) => {
       ) : (
         <div className="flex flex-col gap-3">
           {visible.map((product) => {
-            const sizes = [
-              ...new Set([
-                ...(product.sizes || []),
-                ...(product.stock || []).map((row) => row.size),
-              ]),
-            ];
+            const rows = stockRowsFor(product);
             const tracked = (product.stock || []).length > 0;
 
             return (
@@ -328,15 +338,15 @@ const Inventory = ({ token }) => {
                     </div>
                     <p className="text-xs text-gray-500 mt-2">
                       {tracked
-                        ? `${product.totalUnits} units across ${product.stock.length} size${product.stock.length === 1 ? "" : "s"}`
+                        ? `${product.totalUnits} units across ${product.stock.length} option${product.stock.length === 1 ? "" : "s"}`
                         : "Stock is not tracked yet. Set a quantity to start."}
                     </p>
                   </div>
                 </div>
 
                 <div className="mt-4 flex flex-col gap-2">
-                  {sizes.map((size) => {
-                    const qty = sizeQty(product, size);
+                  {rows.map((row) => {
+                    const qty = row.qty === null ? sizeQty(product, row.size, row.color) : row.qty;
                     const threshold = product.lowStockThreshold ?? 5;
                     const tone =
                       qty === null
@@ -346,14 +356,15 @@ const Inventory = ({ token }) => {
                           : qty <= threshold
                             ? "border-amber-200 bg-amber-50/40"
                             : "border-gray-200";
+                    const label = rowLabel(row);
                     return (
                       <div
-                        key={size}
+                        key={`${row.color}::${row.size}`}
                         className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 ${tone}`}
                       >
                         <div>
                           <p className="text-sm font-medium text-gray-800">
-                            Size {size}
+                            {label}
                           </p>
                           <p className="text-xs text-gray-400">
                             {qty === null ? "Not tracked" : `${qty} in stock`}
@@ -371,8 +382,8 @@ const Inventory = ({ token }) => {
                           <div className="flex items-center gap-2">
                             <button
                               type="button"
-                              aria-label={`Remove one ${size}`}
-                              onClick={() => quickChange(product, size, -1)}
+                              aria-label={`Remove one ${label}`}
+                              onClick={() => quickChange(product, row.size, row.color, -1)}
                               disabled={qty === 0}
                               className="h-8 w-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 disabled:opacity-40"
                             >
@@ -383,8 +394,8 @@ const Inventory = ({ token }) => {
                             </span>
                             <button
                               type="button"
-                              aria-label={`Add one ${size}`}
-                              onClick={() => quickChange(product, size, 1)}
+                              aria-label={`Add one ${label}`}
+                              onClick={() => quickChange(product, row.size, row.color, 1)}
                               className="h-8 w-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50"
                             >
                               <Plus size={14} />
@@ -427,17 +438,18 @@ const Inventory = ({ token }) => {
                     className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-gray-100 pt-4"
                   >
                     <label className="text-xs text-gray-500">
-                      Size
+                      Option
                       <select
-                        value={form.size}
-                        onChange={(e) =>
-                          setForm((prev) => ({ ...prev, size: e.target.value }))
-                        }
+                        value={`${form.color || ""}::${form.size}`}
+                        onChange={(e) => {
+                          const [color, size] = e.target.value.split("::");
+                          setForm((prev) => ({ ...prev, color: color || "", size: size || "" }));
+                        }}
                         className="mt-1 w-full px-3 py-2 text-sm border border-gray-200 rounded-lg text-gray-800"
                       >
-                        {sizes.map((size) => (
-                          <option key={size} value={size}>
-                            {size}
+                        {rows.map((row) => (
+                          <option key={`${row.color}::${row.size}`} value={`${row.color}::${row.size}`}>
+                            {rowLabel(row)}
                           </option>
                         ))}
                       </select>

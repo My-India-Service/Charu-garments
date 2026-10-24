@@ -30,6 +30,7 @@ const writeLog = async ({
 export const adjustStockEntry = async ({
   productId,
   size,
+  color = "",
   action,
   quantity,
   note,
@@ -37,6 +38,7 @@ export const adjustStockEntry = async ({
   orderId = "",
 }) => {
   const qty = Number(quantity);
+  const colorName = String(color || "");
   if (!size) throw new Error("Size is required");
   if (!Number.isFinite(qty) || qty < 0) {
     throw new Error("Enter a valid quantity");
@@ -51,17 +53,20 @@ export const adjustStockEntry = async ({
   const product = await productModel.findById(productId);
   if (!product) throw new Error("Product not found");
 
+  const label = colorName ? `${colorName} / ${size}` : size;
   if (!Array.isArray(product.stock)) product.stock = [];
-  let entry = product.stock.find((row) => row.size === size);
+  let entry = product.stock.find(
+    (row) => row.size === size && String(row.color || "") === colorName,
+  );
   const previousQty = entry ? entry.quantity : 0;
   let nextQty = previousQty;
 
   if (!entry) {
     if (action === "remove") {
-      throw new Error(`${size} is not being tracked yet`);
+      throw new Error(`${label} is not being tracked yet`);
     }
     nextQty = qty;
-    product.stock.push({ size, quantity: nextQty });
+    product.stock.push({ size, color: colorName, quantity: nextQty });
     if (!product.sizes.includes(size)) product.sizes.push(size);
   } else if (action === "set") {
     nextQty = qty;
@@ -71,7 +76,7 @@ export const adjustStockEntry = async ({
     entry.quantity = nextQty;
   } else {
     if (previousQty < qty) {
-      throw new Error(`Only ${previousQty} left in size ${size}`);
+      throw new Error(`Only ${previousQty} left in ${label}`);
     }
     nextQty = previousQty - qty;
     entry.quantity = nextQty;
@@ -80,7 +85,7 @@ export const adjustStockEntry = async ({
   await product.save();
   await writeLog({
     product,
-    size,
+    size: label,
     action,
     quantity: qty,
     previousQty,
@@ -100,23 +105,27 @@ export const reserveOrderStock = async (items, orderId) => {
     for (const item of items || []) {
       const productId = item._id || item.productId;
       const size = item.size;
+      const color = item.color || "";
       const quantity = Number(item.quantity) || 0;
       if (!productId || !size || quantity <= 0) continue;
 
       const product = await productModel.findById(productId).select("stock");
-      const entry = product?.stock?.find((row) => row.size === size);
+      const entry = product?.stock?.find(
+        (row) => row.size === size && String(row.color || "") === color,
+      );
       if (!entry) continue;
 
       await adjustStockEntry({
         productId,
         size,
+        color,
         action: "remove",
         quantity,
         note: "Reserved for order",
         source: "order",
         orderId,
       });
-      applied.push({ productId, size, quantity });
+      applied.push({ productId, size, color, quantity });
     }
   } catch (error) {
     for (const row of applied) {
@@ -138,16 +147,20 @@ export const restoreOrderStock = async (items, orderId) => {
   for (const item of items || []) {
     const productId = item._id || item.productId;
     const size = item.size;
+    const color = item.color || "";
     const quantity = Number(item.quantity) || 0;
     if (!productId || !size || quantity <= 0) continue;
 
     const product = await productModel.findById(productId).select("stock");
-    const entry = product?.stock?.find((row) => row.size === size);
+    const entry = product?.stock?.find(
+      (row) => row.size === size && String(row.color || "") === color,
+    );
     if (!entry) continue;
 
     await adjustStockEntry({
       productId,
       size,
+      color,
       action: "add",
       quantity,
       note: "Restored after cancellation",

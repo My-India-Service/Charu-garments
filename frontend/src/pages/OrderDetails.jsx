@@ -482,6 +482,11 @@ const OrderDetails = () => {
                       {item.name}
                     </p>
                     <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                      {item.color && (
+                        <span className="text-xs px-2 py-0.5 border border-gray-200 bg-gray-50 text-gray-600 rounded-sm uppercase tracking-wider font-medium">
+                          {item.color}
+                        </span>
+                      )}
                       <span className="text-xs px-2 py-0.5 border border-gray-200 bg-gray-50 text-gray-600 rounded-sm uppercase tracking-wider font-medium">
                         Size: {item.size}
                       </span>
@@ -794,12 +799,19 @@ const OrderDetails = () => {
               <div className="mt-4 space-y-3">
                 {order.items.map((item, index) => {
                   const live = products.find((product) => product._id === item._id);
-                  const sizes = (live?.sizes?.length ? live.sizes : item.sizes || []).filter(
-                    (size) => size !== item.size,
-                  );
+                  const color = item.color || "";
+                  const stock = live?.stock || [];
+                  const sizes = (live?.sizes?.length ? live.sizes : item.sizes || []).filter((size) => {
+                    if (size === item.size) return false;
+                    if (!stock.length) return true;
+                    const row = stock.find(
+                      (entry) => entry.size === size && String(entry.color || "") === color,
+                    );
+                    return row && row.quantity > 0;
+                  });
                   return (
-                    <label key={`${item._id}-${item.size}-${index}`} className="block text-xs font-medium text-gray-500">
-                      {item.name} · now {item.size}
+                    <label key={`${item._id}-${color}-${item.size}-${index}`} className="block text-xs font-medium text-gray-500">
+                      {item.name} · now {color ? `${color} / ${item.size}` : item.size}
                       <select
                         value={exchangeSizes[index] || ""}
                         onChange={(e) =>

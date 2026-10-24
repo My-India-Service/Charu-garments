@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { ShopContext } from "../context/ShopContext";
+import ProductItem from "./ProductItem";
 
 const diwali =
   "https://res.cloudinary.com/ula4oo29/image/upload/v1792741594/charu_garments/site/rh85yxnkhpfbf6sagym8.jpg";
@@ -18,9 +20,9 @@ const promos = [
 ];
 
 const categories = [
-  { src: men, alt: "Men's wear", to: "/collection?category=Men" },
-  { src: women, alt: "Women's wear", to: "/collection?category=Women" },
-  { src: kids, alt: "Kids wear", to: "/collection?category=Kids" },
+  { name: "Men", src: men, alt: "Men's wear", to: "/collection?category=Men" },
+  { name: "Women", src: women, alt: "Women's wear", to: "/collection?category=Women" },
+  { name: "Kids", src: kids, alt: "Kids wear", to: "/collection?category=Kids" },
 ];
 
 export const categoryBanners = {
@@ -95,33 +97,92 @@ export const PromoSlider = () => {
   );
 };
 
-export const CategoryBanners = () => {
+const CategoryRail = ({ products }) => {
+  const scroller = useRef(null);
+  const scrollByCards = (direction) => {
+    const node = scroller.current;
+    if (!node) return;
+    node.scrollBy({ left: direction * Math.max(node.clientWidth * 0.75, 220), behavior: "smooth" });
+  };
+
+  if (!products.length) return null;
+
   return (
-    <section className="my-16 sm:my-20">
-      <div className="mb-8 flex flex-col items-center gap-2 text-center">
+    <div className="relative mt-5">
+      {products.length > 2 && (
+        <>
+          <button
+            type="button"
+            aria-label="Scroll products left"
+            onClick={() => scrollByCards(-1)}
+            className="absolute left-0 top-[38%] z-10 hidden h-9 w-9 -translate-x-1/2 items-center justify-center rounded-full bg-white text-lg text-[#1C1917] shadow sm:flex"
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            aria-label="Scroll products right"
+            onClick={() => scrollByCards(1)}
+            className="absolute right-0 top-[38%] z-10 hidden h-9 w-9 translate-x-1/2 items-center justify-center rounded-full bg-white text-lg text-[#1C1917] shadow sm:flex"
+          >
+            ›
+          </button>
+        </>
+      )}
+      <div
+        ref={scroller}
+        className="flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-2"
+      >
+        {products.map((item) => (
+          <div key={item._id} className="w-40 shrink-0 snap-start sm:w-48 md:w-52">
+            <ProductItem
+              id={item._id}
+              image={item.image}
+              name={item.name}
+              price={item.price}
+              mrp={item.mrp}
+              offerQty={item.offerQty}
+              offerPrice={item.offerPrice}
+              colors={item.colors}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export const CategoryBanners = () => {
+  const { products } = useContext(ShopContext);
+
+  return (
+    <div className="my-14 space-y-14 sm:my-20 sm:space-y-20">
+      <div className="flex flex-col items-center gap-2 text-center">
         <p className="text-[11px] font-medium uppercase tracking-[0.32em] text-[#8A8178]">
           Shop by category
         </p>
-        <h2 className="prata-regular text-3xl text-[#1C1917] sm:text-4xl">
-          Find your look
-        </h2>
+        <h2 className="prata-regular text-3xl text-[#1C1917] sm:text-4xl">Find your look</h2>
         <span className="mt-1 h-px w-12 bg-[#7A3030]" />
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {categories.map((item) => (
-          <Link
-            key={item.alt}
-            to={item.to}
-            className="group overflow-hidden rounded-2xl shadow-[0_12px_30px_rgba(17,17,17,0.08)]"
-          >
-            <img
-              src={item.src}
-              alt={item.alt}
-              className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-[1.03]"
-            />
-          </Link>
-        ))}
-      </div>
-    </section>
+
+      {categories.map((item) => {
+        const rows = products.filter((product) => product.category === item.name);
+        return (
+          <section key={item.name}>
+            <Link
+              to={item.to}
+              className="-mx-4 block overflow-hidden sm:-mx-[5vw] md:-mx-[7vw] lg:-mx-[9vw]"
+            >
+              <img
+                src={item.src}
+                alt={item.alt}
+                className="block h-auto w-full"
+              />
+            </Link>
+            <CategoryRail products={rows} />
+          </section>
+        );
+      })}
+    </div>
   );
 };

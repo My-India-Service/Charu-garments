@@ -3,6 +3,7 @@ import { assets } from "../assets/assets";
 import axios from "axios";
 import { backendUrl } from "../App";
 import { toast } from "react-hot-toast";
+import ColorFields, { buildStock, stockIsComplete } from "../components/ColorFields";
 
 const TOPWEAR_SIZES = ["S", "M", "L", "XL", "XXL"];
 const BOTTOMWEAR_SIZES = ["28", "30", "32", "34", "36"];
@@ -83,6 +84,7 @@ const Add = ({ token }) => {
   const [categories, setCategories] = useState([]);
   const [bestseller, setBestseller] = useState(false);
   const [sizes, setSizes] = useState([]);
+  const [colors, setColors] = useState([]);
   const [stockQty, setStockQty] = useState({});
   const [loading, setLoading] = useState(false);
 
@@ -164,8 +166,12 @@ const Add = ({ token }) => {
       return;
     }
 
-    if (sizes.some((size) => stockQty[size] === "" || Number(stockQty[size]) < 0)) {
-      toast.error("Enter a stock quantity for every selected size");
+    if (!stockIsComplete(colors, sizes, stockQty)) {
+      toast.error(
+        colors.length
+          ? "Enter stock for every color and size"
+          : "Enter a stock quantity for every selected size",
+      );
       return;
     }
 
@@ -197,15 +203,8 @@ const Add = ({ token }) => {
       formData.append("subCategory", subCategory);
       formData.append("bestseller", bestseller);
       formData.append("sizes", JSON.stringify(sizes));
-      formData.append(
-        "stock",
-        JSON.stringify(
-          sizes.map((size) => ({
-            size,
-            quantity: Number(stockQty[size]),
-          })),
-        ),
-      );
+      formData.append("colors", JSON.stringify(colors));
+      formData.append("stock", JSON.stringify(buildStock(colors, sizes, stockQty)));
       image1 && formData.append("image1", image1);
       image2 && formData.append("image2", image2);
       image3 && formData.append("image3", image3);
@@ -229,6 +228,7 @@ const Add = ({ token }) => {
         setSubCategory(activeSubs[0]?.name || "");
         setBestseller(false);
         setSizes([]);
+        setColors([]);
         setStockQty({});
         setImage1(false);
         setImage2(false);
@@ -454,7 +454,7 @@ const Add = ({ token }) => {
               </button>
             ))}
           </div>
-          {sizes.length > 0 && (
+          {sizes.length > 0 && colors.length === 0 && (
             <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
               {sizes.map((size) => (
                 <label key={size} className="block">
@@ -475,6 +475,14 @@ const Add = ({ token }) => {
               ))}
             </div>
           )}
+          <ColorFields
+            colors={colors}
+            setColors={setColors}
+            sizes={sizes}
+            stockQty={stockQty}
+            setStockQty={setStockQty}
+            inputClass={inputClass}
+          />
         </div>
 
         {/* Bestseller + Submit */}

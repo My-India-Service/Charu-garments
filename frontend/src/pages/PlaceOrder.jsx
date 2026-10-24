@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { ShopContext } from "../context/ShopContext";
 import { toast } from "react-hot-toast";
 import axios from "axios";
+import { parseVariant } from "../utils/variant";
 
 // ✅ Defined OUTSIDE PlaceOrder — prevents remount on every render
 const FloatingInput = ({ id, label, type = "text", maxLength, ...rest }) => (
@@ -276,7 +277,9 @@ const PlaceOrder = () => {
               products.find((product) => product._id === items),
             );
             if (itemInfo) {
-              itemInfo.size = item;
+              const variant = parseVariant(item);
+              itemInfo.color = variant.color;
+              itemInfo.size = variant.size;
               itemInfo.quantity = cartItems[items][item];
               orderItems.push(itemInfo);
             }

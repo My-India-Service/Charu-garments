@@ -2,6 +2,7 @@ import { createContext, useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import axios from "axios";
 import { cartOfferPricing } from "../utils/offer";
+import { findStock, variantKey, parseVariant } from "../utils/variant";
 
 export const ShopContext = createContext();
 
@@ -26,7 +27,7 @@ const ShopContextProvider = (props) => {
   const delivery_fee = Number(deliverySettings.defaultCharge ?? 10);
   const freeAbove = Number(deliverySettings.freeAbove || 0);
 
-  const addToCart = async (itemId, size) => {
+  const addToCart = async (itemId, size, color = "") => {
     if (!token && !localStorage.getItem("token")) {
       toast.error("Please login to add items to cart");
       return false;
@@ -37,15 +38,17 @@ const ShopContextProvider = (props) => {
       return false;
     }
 
+    const key = variantKey(color, size);
+    const label = color ? `${color} / ${size}` : `size ${size}`;
     const product = products.find((item) => item._id === itemId);
     const stockRows = product?.stock || [];
-    const stockRow = stockRows.find((row) => row.size === size);
-    const nextQty = (cartItems[itemId]?.[size] || 0) + 1;
+    const stockRow = findStock(product, size, color);
+    const nextQty = (cartItems[itemId]?.[key] || 0) + 1;
     if (stockRows.length && (!stockRow || nextQty > stockRow.quantity)) {
       toast.error(
         stockRow && stockRow.quantity > 0
-          ? `Only ${stockRow.quantity} left in size ${size}`
-          : "This size is out of stock",
+          ? `Only ${stockRow.quantity} left in ${label}`
+          : `${label} is out of stock`,
       );
       return false;
     }
@@ -53,14 +56,14 @@ const ShopContextProvider = (props) => {
     let cartData = structuredClone(cartItems);
 
     if (cartData[itemId]) {
-      if (cartData[itemId][size]) {
-        cartData[itemId][size] += 1;
+      if (cartData[itemId][key]) {
+        cartData[itemId][key] += 1;
       } else {
-        cartData[itemId][size] = 1;
+        cartData[itemId][key] = 1;
       }
     } else {
       cartData[itemId] = {};
-      cartData[itemId][size] = 1;
+      cartData[itemId][key] = 1;
     }
 
     setCartItems(cartData);
@@ -69,7 +72,7 @@ const ShopContextProvider = (props) => {
       try {
         await axios.post(
           backendUrl + "/api/cart/add",
-          { itemId, size },
+          { itemId, size: key },
           { headers: { token } },
         );
       } catch (error) {
@@ -82,12 +85,14 @@ const ShopContextProvider = (props) => {
   const updateQuantity = async (itemId, size, quantity) => {
     const product = products.find((item) => item._id === itemId);
     const stockRows = product?.stock || [];
-    const stockRow = stockRows.find((row) => row.size === size);
+    const parsed = parseVariant(size);
+    const stockRow = findStock(product, parsed.size, parsed.color);
+    const label = parsed.color ? `${parsed.color} / ${parsed.size}` : `size ${parsed.size}`;
     if (quantity > 0 && stockRows.length && (!stockRow || quantity > stockRow.quantity)) {
       toast.error(
         stockRow
-          ? `Only ${stockRow.quantity} left in size ${size}`
-          : "This size is out of stock",
+          ? `Only ${stockRow.quantity} left in ${label}`
+          : `${label} is out of stock`,
       );
       return;
     }

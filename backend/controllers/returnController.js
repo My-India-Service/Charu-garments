@@ -39,7 +39,10 @@ const buildExchangeLines = async (order, requested) => {
     const quantity = Number(item.quantity) || 1;
     const stock = product?.stock || [];
     if (stock.length) {
-      const entry = stock.find((sizeRow) => sizeRow.size === newSize);
+      const entry = stock.find(
+        (sizeRow) =>
+          sizeRow.size === newSize && String(sizeRow.color || "") === String(item.color || ""),
+      );
       if (!entry || entry.quantity < quantity) {
         throw new Error(`${item.name} in size ${newSize} is out of stock`);
       }
@@ -240,7 +243,9 @@ const updateReturnRequest = async (req, res) => {
         if (!item) continue;
         const product = await productModel.findById(line.productId).select("stock");
         if (product?.stock?.length) {
-          const entry = product.stock.find((row) => row.size === line.newSize);
+          const entry = product.stock.find(
+            (row) => row.size === line.newSize && String(row.color || "") === String(item.color || ""),
+          );
           if (!entry || entry.quantity < line.quantity) {
             return res.json({
               success: false,
@@ -258,6 +263,7 @@ const updateReturnRequest = async (req, res) => {
           await adjustStockEntry({
             productId: line.productId,
             size: line.oldSize,
+            color: item.color || "",
             action: "add",
             quantity: line.quantity,
             note: "Size exchange — old size returned",
@@ -267,6 +273,7 @@ const updateReturnRequest = async (req, res) => {
           await adjustStockEntry({
             productId: line.productId,
             size: line.newSize,
+            color: item.color || "",
             action: "remove",
             quantity: line.quantity,
             note: "Size exchange — new size sent",

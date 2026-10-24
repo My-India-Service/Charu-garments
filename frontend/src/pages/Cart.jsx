@@ -6,6 +6,7 @@ import CartTotal from "../components/CartTotal";
 import PriceTag from "../components/PriceTag";
 import { useNavigate } from "react-router-dom";
 import { cartOfferPricing, offerLabel } from "../utils/offer";
+import { parseVariant } from "../utils/variant";
 
 const Cart = () => {
   const navigate = useNavigate();
@@ -74,6 +75,7 @@ const Cart = () => {
           const productData = products.find(
             (product) => product._id === item._id,
           );
+          const variant = parseVariant(item.size);
 
           return (
             <div
@@ -111,7 +113,7 @@ const Cart = () => {
                     size="line"
                   />
                   <span className="text-xs px-2.5 py-0.5 border border-gray-200 bg-gray-50 text-gray-600 rounded-sm tracking-wider uppercase font-medium">
-                    {item.size}
+                    {variant.color ? `${variant.color} · ${variant.size}` : variant.size}
                   </span>
                 </div>
                 {offerLabel(productData, currency) && (
