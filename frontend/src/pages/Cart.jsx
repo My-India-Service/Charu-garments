@@ -6,7 +6,7 @@ import CartTotal from "../components/CartTotal";
 import PriceTag from "../components/PriceTag";
 import { useNavigate } from "react-router-dom";
 import { cartOfferPricing, offerLabel } from "../utils/offer";
-import { parseVariant } from "../utils/variant";
+import { parseVariant, variantPrice } from "../utils/variant";
 
 const Cart = () => {
   const navigate = useNavigate();
@@ -107,8 +107,8 @@ const Cart = () => {
                 </p>
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1.5">
                   <PriceTag
-                    price={productData.price}
-                    mrp={productData.mrp}
+                    price={variantPrice(productData, variant.size, variant.color).price}
+                    mrp={variantPrice(productData, variant.size, variant.color).mrp}
                     currency={currency}
                     size="line"
                   />

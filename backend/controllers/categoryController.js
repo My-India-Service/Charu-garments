@@ -77,10 +77,11 @@ const addSubCategory = async (req, res) => {
       return res.json({ success: false, message: "Subcategory already exists" });
     }
 
+    const allowed = ["apparel", "bottom", "cm"];
     category.subCategories.push({
       name,
       active: true,
-      sizeType: sizeType === "bottom" ? "bottom" : "apparel",
+      sizeType: allowed.includes(sizeType) ? sizeType : "apparel",
     });
     await category.save();
     res.json({ success: true, message: "Subcategory added", category });
@@ -101,6 +102,24 @@ const toggleCategory = async (req, res) => {
       message: category.active ? "Category enabled" : "Category disabled",
       category,
     });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
+const updateSubSizeType = async (req, res) => {
+  try {
+    const { categoryId, name } = req.body;
+    const allowed = ["apparel", "bottom", "cm"];
+    const sizeType = allowed.includes(req.body.sizeType) ? req.body.sizeType : "apparel";
+    const category = await categoryModel.findById(categoryId);
+    if (!category) return res.json({ success: false, message: "Category not found" });
+    const sub = category.subCategories.find((item) => item.name === name);
+    if (!sub) return res.json({ success: false, message: "Subcategory not found" });
+    sub.sizeType = sizeType;
+    await category.save();
+    res.json({ success: true, message: "Size options updated", category });
   } catch (error) {
     console.log(error);
     res.json({ success: false, message: error.message });
@@ -177,6 +196,7 @@ export {
   addSubCategory,
   toggleCategory,
   toggleSubCategory,
+  updateSubSizeType,
   removeCategory,
   removeSubCategory,
 };

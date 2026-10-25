@@ -3,10 +3,23 @@ import { ShopContext } from "../context/ShopContext";
 import { Link } from "react-router-dom";
 import PriceTag, { discountPercent } from "./PriceTag";
 import { offerLabel } from "../utils/offer";
+import { priceRange } from "../utils/variant";
 
-const ProductItem = ({ id, image, name, price, mrp, offerQty, offerPrice, colors = [] }) => {
+const ProductItem = ({
+  id,
+  image,
+  name,
+  price,
+  mrp,
+  offerQty,
+  offerPrice,
+  colors = [],
+  sizes = [],
+  stock = [],
+}) => {
   const { currency } = useContext(ShopContext);
-  const off = discountPercent(price, mrp);
+  const range = priceRange({ price, mrp, colors, sizes, stock });
+  const off = range.varied ? range.maxOff : discountPercent(range.min, range.mrp || mrp);
   const offer = offerLabel({ price, offerQty, offerPrice }, currency);
   const swatches = (Array.isArray(colors) ? colors : [])
     .map((color) =>
@@ -26,7 +39,7 @@ const ProductItem = ({ id, image, name, price, mrp, offerQty, offerPrice, colors
         />
         {off > 0 && (
           <span className="absolute left-2.5 top-2.5 rounded-full bg-[#7A3030] px-2.5 py-1 text-[10px] font-semibold tracking-wide text-white shadow-sm">
-            {off}% OFF
+            {range.varied ? `Up to ${off}% OFF` : `${off}% OFF`}
           </span>
         )}
         {swatches.length > 0 && (
@@ -53,7 +66,14 @@ const ProductItem = ({ id, image, name, price, mrp, offerQty, offerPrice, colors
         <p className="line-clamp-2 text-[13px] leading-snug text-[#3F3832] transition-colors duration-150 group-hover:text-[#1C1917]">
           {name}
         </p>
-        <PriceTag price={price} mrp={mrp} currency={currency} />
+        {range.varied ? (
+          <p className="text-sm font-semibold text-[#7A3030]">
+            From {currency}
+            {range.min}
+          </p>
+        ) : (
+          <PriceTag price={range.min || price} mrp={range.mrp || mrp} currency={currency} />
+        )}
         {swatches.length > 0 && (
           <div className="flex items-center gap-1.5 pt-0.5">
             {swatches.slice(0, 5).map((color) => (

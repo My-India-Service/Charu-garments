@@ -3,13 +3,16 @@ import { assets } from "../assets/assets";
 import axios from "axios";
 import { backendUrl } from "../App";
 import { toast } from "react-hot-toast";
-import ColorFields, { buildStock, stockIsComplete } from "../components/ColorFields";
-
-const TOPWEAR_SIZES = ["S", "M", "L", "XL", "XXL"];
-const BOTTOMWEAR_SIZES = ["28", "30", "32", "34", "36"];
-
-const getSizes = (sizeType) =>
-  sizeType === "bottom" ? BOTTOMWEAR_SIZES : TOPWEAR_SIZES;
+import ColorFields, { buildStock, stockIsComplete, sizeRatesAreValid } from "../components/ColorFields";
+import SizeRateBox from "../components/SizeRateBox";
+import {
+  SIZE_TYPES,
+  detectSizeType,
+  getSizes,
+  resolveSizeType,
+  sizeFromStockKey,
+  sizeHint,
+} from "../utils/sizes";
 
 const ImageUpload = ({ id, image, onChange }) => (
   <label
@@ -84,8 +87,10 @@ const Add = ({ token }) => {
   const [categories, setCategories] = useState([]);
   const [bestseller, setBestseller] = useState(false);
   const [sizes, setSizes] = useState([]);
+  const [sizeType, setSizeType] = useState("apparel");
   const [colors, setColors] = useState([]);
   const [stockQty, setStockQty] = useState({});
+  const [sizeDeal, setSizeDeal] = useState({});
   const [loading, setLoading] = useState(false);
 
   const activeCategories = categories.filter((item) => item.active !== false);
@@ -93,8 +98,14 @@ const Add = ({ token }) => {
   const activeSubs = (selectedCategory?.subCategories || []).filter(
     (item) => item.active !== false,
   );
-  const sizeType =
-    activeSubs.find((item) => item.name === subCategory)?.sizeType || "apparel";
+  const subSizeType = resolveSizeType(
+    activeSubs.find((item) => item.name === subCategory)?.sizeType,
+    subCategory,
+  );
+
+  useEffect(() => {
+    if (subCategory) setSizeType(subSizeType);
+  }, [subCategory, subSizeType]);
 
   useEffect(() => {
     axios
@@ -125,13 +136,27 @@ const Add = ({ token }) => {
   const handleSubCategoryChange = (e) => {
     const newSub = e.target.value;
     setSubCategory(newSub);
-    const nextType =
-      activeSubs.find((item) => item.name === newSub)?.sizeType || "apparel";
+    const nextType = resolveSizeType(
+      activeSubs.find((item) => item.name === newSub)?.sizeType,
+      newSub,
+    );
     const validSizes = getSizes(nextType);
+    setSizeType(nextType);
     setSizes((prev) => prev.filter((s) => validSizes.includes(s)));
     setStockQty((prev) =>
       Object.fromEntries(
-        Object.entries(prev).filter(([size]) => validSizes.includes(size)),
+        Object.entries(prev).filter(([key]) => validSizes.includes(sizeFromStockKey(key))),
+      ),
+    );
+  };
+
+  const changeSizeType = (nextType) => {
+    const validSizes = getSizes(nextType);
+    setSizeType(nextType);
+    setSizes((prev) => prev.filter((size) => validSizes.includes(size)));
+    setStockQty((prev) =>
+      Object.fromEntries(
+        Object.entries(prev).filter(([key]) => validSizes.includes(sizeFromStockKey(key))),
       ),
     );
   };
@@ -175,7 +200,12 @@ const Add = ({ token }) => {
       return;
     }
 
-    if (mrp && Number(mrp) <= Number(price)) {
+    const rateError = sizeRatesAreValid(colors, sizes, sizeDeal);
+    if (rateError) {
+      toast.error(rateError);
+      return;
+    }
+    if (mrp && Number(mrp) <= Number(price) && !Object.values(sizeDeal).some((deal) => deal?.off !== "" && deal?.off != null)) {
       toast.error("MRP must be higher than the selling price");
       return;
     }
@@ -204,7 +234,7 @@ const Add = ({ token }) => {
       formData.append("bestseller", bestseller);
       formData.append("sizes", JSON.stringify(sizes));
       formData.append("colors", JSON.stringify(colors));
-      formData.append("stock", JSON.stringify(buildStock(colors, sizes, stockQty)));
+      formData.append("stock", JSON.stringify(buildStock(colors, sizes, stockQty, sizeDeal)));
       image1 && formData.append("image1", image1);
       image2 && formData.append("image2", image2);
       image3 && formData.append("image3", image3);
@@ -230,6 +260,7 @@ const Add = ({ token }) => {
         setSizes([]);
         setColors([]);
         setStockQty({});
+        setSizeDeal({});
         setImage1(false);
         setImage2(false);
         setImage3(false);
@@ -432,10 +463,25 @@ const Add = ({ token }) => {
         {/* Sizes */}
         <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 shadow-sm">
           <p className={labelClass}>Available Sizes</p>
-          <p className="text-xs text-gray-400 mb-3">
-            {sizeType === "bottom"
-              ? "Waist sizes in inches"
-              : "Select all sizes in stock"}
+          <div className="mb-3 flex flex-wrap gap-2">
+            {SIZE_TYPES.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => changeSizeType(item.id)}
+                className={`rounded-full border px-3 py-1.5 text-xs font-medium ${
+                  sizeType === item.id
+                    ? "border-gray-900 bg-gray-900 text-white"
+                    : "border-gray-200 bg-white text-gray-600"
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-gray-400 mb-3">{sizeHint(sizeType)}</p>
+          <p className="mb-3 text-xs text-gray-500">
+            For a different discount on one size, fill that size’s MRP and discount. Example: 100 cm at 10%, 95 cm at 20%, and 90 cm to 75 cm at 40%.
           </p>
           <div className="flex flex-wrap gap-2">
             {availableSizes.map((size) => (
@@ -455,23 +501,18 @@ const Add = ({ token }) => {
             ))}
           </div>
           {sizes.length > 0 && colors.length === 0 && (
-            <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="mt-4 grid gap-3">
               {sizes.map((size) => (
-                <label key={size} className="block">
-                  <span className="text-xs font-medium text-gray-500">
-                    {size} stock
-                  </span>
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="0"
-                    value={stockQty[size] ?? ""}
-                    onChange={(e) =>
-                      setStockQty((qty) => ({ ...qty, [size]: e.target.value }))
-                    }
-                    className={`${inputClass} mt-1`}
-                  />
-                </label>
+                <SizeRateBox
+                  key={size}
+                  label={size}
+                  rateKey={size}
+                  stockQty={stockQty}
+                  setStockQty={setStockQty}
+                  sizeDeal={sizeDeal}
+                  setSizeDeal={setSizeDeal}
+                  inputClass={inputClass}
+                />
               ))}
             </div>
           )}
@@ -481,6 +522,8 @@ const Add = ({ token }) => {
             sizes={sizes}
             stockQty={stockQty}
             setStockQty={setStockQty}
+            sizeDeal={sizeDeal}
+            setSizeDeal={setSizeDeal}
             inputClass={inputClass}
           />
         </div>

@@ -15,6 +15,22 @@ const parseMrp = (price, mrp) => {
   return original;
 };
 
+const catalogFromSizes = (basePrice, baseMrp, stock) => {
+  const priced = (stock || []).filter((row) => Number(row.price) > 0);
+  const sale = priced.length
+    ? Math.min(...priced.map((row) => Number(row.price)))
+    : Number(basePrice);
+  let list = 0;
+  try {
+    list = parseMrp(sale, baseMrp);
+  } catch (error) {
+    if (!priced.length) throw error;
+  }
+  const sizeMrp = Math.max(0, ...(stock || []).map((row) => Number(row.mrp) || 0));
+  if (sizeMrp > sale) list = sizeMrp;
+  return { price: sale, mrp: list > sale ? list : 0 };
+};
+
 const parseOffer = (price, offerQty, offerPrice) => {
   const pieces =
     offerQty === undefined || offerQty === null || offerQty === ""
@@ -59,6 +75,8 @@ const parseStock = (raw, sizes, colors) => {
       size: row.size,
       color: names.has(row.color) ? row.color : "",
       quantity: Math.max(0, Number(row.quantity) || 0),
+      price: Math.max(0, Math.round(Number(row.price) || 0)),
+      mrp: Math.max(0, Math.round(Number(row.mrp) || 0)),
     }))
     .filter((row) => (names.size ? names.has(row.color) : !row.color));
 };
@@ -99,14 +117,15 @@ const addProduct = async (req, res) => {
     const parsedSizes = JSON.parse(sizes);
     const parsedColors = parseColors(colors);
     const parsedStock = parseStock(stock, parsedSizes, parsedColors);
+    const catalog = catalogFromSizes(price, mrp, parsedStock);
 
     const productData = {
       name,
       description,
       category,
-      price: Number(price),
-      mrp: parseMrp(price, mrp),
-      ...parseOffer(price, offerQty, offerPrice),
+      price: catalog.price,
+      mrp: catalog.mrp,
+      ...parseOffer(catalog.price, offerQty, offerPrice),
       subCategory,
       bestseller: bestseller === "true" ? true : false,
       sizes: parsedSizes,
@@ -313,17 +332,17 @@ const updateProduct = async (req, res) => {
       nextStock = kept;
     }
 
+    const catalog = catalogFromSizes(price || product.price, mrp, nextStock);
+
     const updatedProduct = await productModel.findByIdAndUpdate(
       id,
       {
         ...(name && { name }),
         ...(description && { description }),
-        ...(price && { price: Number(price) }),
-        ...(mrp !== undefined && {
-          mrp: parseMrp(price || product.price, mrp),
-        }),
+        price: catalog.price,
+        mrp: catalog.mrp,
         ...(offerQty !== undefined &&
-          parseOffer(price || product.price, offerQty, offerPrice)),
+          parseOffer(catalog.price, offerQty, offerPrice)),
         ...(category && { category }),
         ...(subCategory && { subCategory }),
         ...(sizes && { sizes: nextSizes, colors: nextColors, stock: nextStock }),

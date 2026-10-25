@@ -28,7 +28,7 @@ export const lineAmount = (item) =>
 export const applyOffers = async (items = []) => {
   const ids = [...new Set(items.map((item) => String(item._id || "")).filter(Boolean))];
   const products = ids.length
-    ? await productModel.find({ _id: { $in: ids } }).select("price offerQty offerPrice")
+    ? await productModel.find({ _id: { $in: ids } }).select("price mrp offerQty offerPrice stock")
     : [];
   const byId = new Map(products.map((product) => [String(product._id), product]));
 
@@ -44,7 +44,40 @@ export const applyOffers = async (items = []) => {
 
   for (const [id, lines] of groups) {
     const product = byId.get(id);
-    const unit = product ? Number(product.price) : Number(lines[0].price) || 0;
+    const unitOf = (line) => {
+      const row = (product?.stock || []).find(
+        (entry) =>
+          entry.size === line.size && String(entry.color || "") === String(line.color || ""),
+      );
+      return Number(row?.price) > 0 ? Number(row.price) : Number(product?.price) || Number(line.price) || 0;
+    };
+    const mrpOf = (line) => {
+      const row = (product?.stock || []).find(
+        (entry) =>
+          entry.size === line.size && String(entry.color || "") === String(line.color || ""),
+      );
+      const mrp = Number(row?.mrp) > 0 ? Number(row.mrp) : Number(product?.mrp) || 0;
+      return mrp > unitOf(line) ? mrp : 0;
+    };
+    const units = lines.map(unitOf);
+    const same = units.every((unit) => unit === units[0]);
+    const unit = same ? units[0] || 0 : 0;
+
+    if (!same) {
+      lines.forEach((line) => {
+        const each = unitOf(line);
+        const count = Number(line.quantity) || 0;
+        next.push({
+          ...line,
+          price: each,
+          mrp: mrpOf(line),
+          lineTotal: roundMoney(each * count),
+          offerText: "",
+        });
+      });
+      continue;
+    }
+
     const qty = lines.reduce((sum, line) => sum + (Number(line.quantity) || 0), 0);
     const priced = bundleCharge(qty, unit, product?.offerQty, product?.offerPrice);
     offerDiscount = roundMoney(offerDiscount + priced.saving);
@@ -59,6 +92,7 @@ export const applyOffers = async (items = []) => {
       next.push({
         ...line,
         price: unit,
+        mrp: mrpOf(line),
         lineTotal: share,
         offerText: label,
       });

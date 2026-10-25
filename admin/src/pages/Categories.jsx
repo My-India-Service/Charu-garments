@@ -2,6 +2,7 @@ import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { backendUrl } from "../App";
+import { SIZE_TYPES, sizeTypeLabel } from "../utils/sizes";
 
 const Categories = ({ token }) => {
   const [categories, setCategories] = useState([]);
@@ -131,11 +132,27 @@ const Categories = ({ token }) => {
                     <div>
                       <p className="text-sm text-gray-800">{sub.name}</p>
                       <p className="text-[11px] text-gray-400">
-                        {sub.sizeType === "bottom" ? "Waist sizes" : "S to XXL"} ·{" "}
-                        {sub.active ? "Enabled" : "Disabled"}
+                        {sizeTypeLabel(sub.sizeType)} · {sub.active ? "Enabled" : "Disabled"}
                       </p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
+                      <select
+                        value={sub.sizeType || "apparel"}
+                        onChange={(e) =>
+                          post("/api/category/sub-size", {
+                            categoryId: category._id,
+                            name: sub.name,
+                            sizeType: e.target.value,
+                          })
+                        }
+                        className="px-2 py-1.5 text-xs border border-gray-200 rounded-lg"
+                      >
+                        {SIZE_TYPES.map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.label}
+                          </option>
+                        ))}
+                      </select>
                       <button
                         type="button"
                         onClick={() =>
@@ -196,8 +213,9 @@ const Categories = ({ token }) => {
                   }
                   className="px-3 py-2 text-sm border border-gray-200 rounded-lg"
                 >
-                  <option value="apparel">Top sizes</option>
-                  <option value="bottom">Waist sizes</option>
+                  <option value="apparel">S to XXL</option>
+                  <option value="bottom">Waist inches</option>
+                  <option value="cm">Underwear cm</option>
                 </select>
                 <button
                   type="submit"

@@ -2,15 +2,16 @@ import axios from "axios";
 import React, { useEffect, useRef, useState } from "react";
 import { backendUrl, currency } from "../App";
 import { toast } from "react-hot-toast";
-import ColorFields, { buildStock, stockIsComplete, stockKey } from "./ColorFields";
+import ColorFields, { buildStock, stockIsComplete, stockKey, sizeRatesAreValid } from "./ColorFields";
+import SizeRateBox from "./SizeRateBox";
+import {
+  SIZE_TYPES,
+  detectSizeType,
+  getSizes,
+  resolveSizeType,
+  sizeHint,
+} from "../utils/sizes";
 
-const TOPWEAR_SIZES = ["S", "M", "L", "XL", "XXL"];
-const BOTTOMWEAR_SIZES = ["28", "30", "32", "34", "36"];
-
-const getSizes = (sizeType) =>
-  sizeType === "bottom" ? BOTTOMWEAR_SIZES : TOPWEAR_SIZES;
-
-// ── ImageSlot ────────────────────────────────────────────────────────────────
 const ImageSlot = ({
   index,
   existingUrl,
@@ -216,6 +217,17 @@ const EditProductModal = ({ product, token, onClose, fetchList }) => {
     });
     return qty;
   });
+  const [sizeDeal, setSizeDeal] = useState(() => {
+    const deal = {};
+    (product.stock || []).forEach((row) => {
+      if (!(Number(row.mrp) > Number(row.price) && Number(row.price) > 0)) return;
+      deal[stockKey(row.color || "", row.size)] = {
+        mrp: String(row.mrp),
+        off: String(Math.round(((row.mrp - row.price) / row.mrp) * 100)),
+      };
+    });
+    return deal;
+  });
   const modalRef = useRef(null);
 
   const activeCategories = categories.filter((item) => item.active !== false);
@@ -230,9 +242,15 @@ const EditProductModal = ({ product, token, onClose, fetchList }) => {
   const activeSubs = (selectedCategory?.subCategories || []).filter(
     (item) => item.active !== false || item.name === editForm.subCategory,
   );
-  const sizeType =
-    activeSubs.find((item) => item.name === editForm.subCategory)?.sizeType ||
-    (editForm.subCategory === "Bottomwear" ? "bottom" : "apparel");
+  const [sizeType, setSizeType] = useState(() =>
+    detectSizeType(
+      product.sizes,
+      resolveSizeType(
+        product.subCategory === "Bottomwear" ? "bottom" : "apparel",
+        product.subCategory,
+      ),
+    ),
+  );
 
   useEffect(() => {
     axios
@@ -251,8 +269,9 @@ const EditProductModal = ({ product, token, onClose, fetchList }) => {
     const nextName = e.target.value;
     const next = categories.find((item) => item.name === nextName);
     const firstSub = next?.subCategories?.find((item) => item.active !== false);
-    const nextType = firstSub?.sizeType || "apparel";
+    const nextType = resolveSizeType(firstSub?.sizeType, firstSub?.name);
     const validSizes = getSizes(nextType);
+    setSizeType(nextType);
     setEditForm((f) => ({
       ...f,
       category: nextName,
@@ -263,9 +282,12 @@ const EditProductModal = ({ product, token, onClose, fetchList }) => {
 
   const handleSubCategoryChange = (e) => {
     const newSub = e.target.value;
-    const nextType =
-      activeSubs.find((item) => item.name === newSub)?.sizeType || "apparel";
+    const nextType = resolveSizeType(
+      activeSubs.find((item) => item.name === newSub)?.sizeType,
+      newSub,
+    );
     const validSizes = getSizes(nextType);
+    setSizeType(nextType);
     setEditForm((f) => ({
       ...f,
       subCategory: newSub,
@@ -315,7 +337,16 @@ const EditProductModal = ({ product, token, onClose, fetchList }) => {
       return;
     }
 
-    if (editForm.mrp && Number(editForm.mrp) <= Number(editForm.price)) {
+    const rateError = sizeRatesAreValid(colors, editForm.sizes, sizeDeal);
+    if (rateError) {
+      toast.error(rateError);
+      return;
+    }
+    if (
+      editForm.mrp &&
+      Number(editForm.mrp) <= Number(editForm.price) &&
+      !Object.values(sizeDeal).some((deal) => deal?.off !== "" && deal?.off != null)
+    ) {
       toast.error("MRP must be higher than the selling price");
       return;
     }
@@ -358,7 +389,7 @@ const EditProductModal = ({ product, token, onClose, fetchList }) => {
       formData.append("colors", JSON.stringify(colors));
       formData.append(
         "stock",
-        JSON.stringify(buildStock(colors, editForm.sizes, stockQty)),
+        JSON.stringify(buildStock(colors, editForm.sizes, stockQty, sizeDeal)),
       );
       formData.append("bestseller", editForm.bestseller);
       formData.append("removeImages", JSON.stringify(editForm.removeImages));
@@ -606,11 +637,30 @@ const EditProductModal = ({ product, token, onClose, fetchList }) => {
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
               Available Sizes
             </label>
-            <p className="text-xs text-gray-400 mb-3">
-              {sizeType === "bottom"
-                ? "Waist sizes in inches"
-                : "Select all sizes in stock"}
-            </p>
+            <p className="text-xs text-gray-400 mb-3">{sizeHint(sizeType)}</p>
+            <div className="mb-3 flex flex-wrap gap-2">
+              {SIZE_TYPES.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    const validSizes = getSizes(item.id);
+                    setSizeType(item.id);
+                    setEditForm((form) => ({
+                      ...form,
+                      sizes: form.sizes.filter((size) => validSizes.includes(size)),
+                    }));
+                  }}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-medium ${
+                    sizeType === item.id
+                      ? "border-blue-600 bg-blue-600 text-white"
+                      : "border-gray-200 bg-white text-gray-600"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
             <div className="flex flex-wrap gap-2 sm:gap-2.5">
               {availableSizes.map((size) => {
                 const active = editForm.sizes?.includes(size);
@@ -634,21 +684,18 @@ const EditProductModal = ({ product, token, onClose, fetchList }) => {
           </div>
 
           {editForm.sizes.length > 0 && colors.length === 0 && (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="grid gap-3">
               {editForm.sizes.map((size) => (
-                <label key={size} className="block">
-                  <span className="text-xs font-medium text-gray-500">{size} stock</span>
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="0"
-                    value={stockQty[size] ?? ""}
-                    onChange={(e) =>
-                      setStockQty((qty) => ({ ...qty, [size]: e.target.value }))
-                    }
-                    className="mt-1 w-full rounded-2xl border border-gray-200 px-4 py-3 text-[15px] text-gray-900"
-                  />
-                </label>
+                <SizeRateBox
+                  key={size}
+                  label={size}
+                  rateKey={size}
+                  stockQty={stockQty}
+                  setStockQty={setStockQty}
+                  sizeDeal={sizeDeal}
+                  setSizeDeal={setSizeDeal}
+                  inputClass="w-full rounded-2xl border border-gray-200 px-4 py-3 text-[15px] text-gray-900"
+                />
               ))}
             </div>
           )}
@@ -659,6 +706,8 @@ const EditProductModal = ({ product, token, onClose, fetchList }) => {
             sizes={editForm.sizes}
             stockQty={stockQty}
             setStockQty={setStockQty}
+            sizeDeal={sizeDeal}
+            setSizeDeal={setSizeDeal}
             inputClass="w-full rounded-2xl border border-gray-200 px-4 py-3 text-[15px] text-gray-900"
           />
 

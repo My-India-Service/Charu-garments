@@ -1,4 +1,5 @@
 import { useState } from "react";
+import SizeRateBox, { saleFromDiscount } from "./SizeRateBox";
 
 export const COLOR_PRESETS = [
   { name: "Black", hex: "#1C1917" },
@@ -17,21 +18,40 @@ export const COLOR_PRESETS = [
 
 export const stockKey = (color, size) => (color ? `${color}::${size}` : size);
 
-export const buildStock = (colors, sizes, stockQty) => {
-  if (!colors.length) {
-    return sizes.map((size) => ({
+export const buildStock = (colors, sizes, stockQty, sizeDeal = {}) => {
+  const rowFor = (color, size) => {
+    const key = stockKey(color, size);
+    const deal = sizeDeal[key] || {};
+    const hasRate = deal.off !== "" && deal.off != null;
+    const mrp = deal.mrp !== "" && deal.mrp != null ? Number(deal.mrp) : 0;
+    const price = hasRate ? saleFromDiscount(mrp, deal.off) : 0;
+    return {
       size,
-      color: "",
-      quantity: Number(stockQty[size] || 0),
-    }));
+      color: color || "",
+      quantity: Number(stockQty[key] || 0),
+      price,
+      mrp: price > 0 ? mrp : 0,
+    };
+  };
+  if (!colors.length) return sizes.map((size) => rowFor("", size));
+  return colors.flatMap((color) => sizes.map((size) => rowFor(color.name, size)));
+};
+
+export const sizeRatesAreValid = (colors, sizes, sizeDeal) => {
+  const keys = colors.length
+    ? colors.flatMap((color) => sizes.map((size) => stockKey(color.name, size)))
+    : sizes;
+  for (const key of keys) {
+    const deal = sizeDeal[key] || {};
+    const hasOff = deal.off !== "" && deal.off != null;
+    const hasMrp = deal.mrp !== "" && deal.mrp != null;
+    if (!hasOff && !hasMrp) continue;
+    const price = saleFromDiscount(deal.mrp, hasOff ? deal.off : 0);
+    if (!(Number(deal.mrp) > 0) || price <= 0) {
+      return "Enter a valid MRP and discount for every size you price separately";
+    }
   }
-  return colors.flatMap((color) =>
-    sizes.map((size) => ({
-      size,
-      color: color.name,
-      quantity: Number(stockQty[stockKey(color.name, size)] || 0),
-    })),
-  );
+  return "";
 };
 
 export const stockIsComplete = (colors, sizes, stockQty) => {
@@ -43,7 +63,16 @@ export const stockIsComplete = (colors, sizes, stockQty) => {
   );
 };
 
-const ColorFields = ({ colors, setColors, sizes, stockQty, setStockQty, inputClass }) => {
+const ColorFields = ({
+  colors,
+  setColors,
+  sizes,
+  stockQty,
+  setStockQty,
+  sizeDeal = {},
+  setSizeDeal,
+  inputClass,
+}) => {
   const [name, setName] = useState("");
   const [hex, setHex] = useState("#7A3030");
 
@@ -146,23 +175,20 @@ const ColorFields = ({ colors, setColors, sizes, stockQty, setStockQty, inputCla
                   Remove
                 </button>
               </div>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div className="grid gap-3">
                 {sizes.map((size) => {
                   const key = stockKey(color.name, size);
                   return (
-                    <label key={key} className="block">
-                      <span className="text-xs font-medium text-gray-500">{size} stock</span>
-                      <input
-                        type="number"
-                        min="0"
-                        placeholder="0"
-                        value={stockQty[key] ?? ""}
-                        onChange={(e) =>
-                          setStockQty((qty) => ({ ...qty, [key]: e.target.value }))
-                        }
-                        className={`${inputClass} mt-1`}
-                      />
-                    </label>
+                    <SizeRateBox
+                      key={key}
+                      label={size}
+                      rateKey={key}
+                      stockQty={stockQty}
+                      setStockQty={setStockQty}
+                      sizeDeal={sizeDeal}
+                      setSizeDeal={setSizeDeal}
+                      inputClass={inputClass}
+                    />
                   );
                 })}
               </div>

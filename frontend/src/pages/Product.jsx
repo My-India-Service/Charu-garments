@@ -9,7 +9,7 @@ import { X, ShieldCheck, BadgeCheck, Truck } from "lucide-react";
 import { getProductReviews } from "../utils/reviewUtils";
 import PriceTag, { discountPercent } from "../components/PriceTag";
 import { offerLabel } from "../utils/offer";
-import { findStock } from "../utils/variant";
+import { findStock, priceRange, variantPrice } from "../utils/variant";
 
 const SizeChartModal = ({ onClose }) => {
   const [activeTab, setActiveTab] = useState("clothes");
@@ -366,12 +366,30 @@ const Product = () => {
 
           {/* Price */}
           <div className="mt-5">
-            <PriceTag
-              price={productData.price}
-              mrp={productData.mrp}
-              currency={currency}
-              size="detail"
-            />
+            {(() => {
+              const pickedColor = (productData.colors || []).length ? color : "";
+              const quote = size
+                ? variantPrice(productData, size, pickedColor)
+                : null;
+              const range = priceRange(productData);
+              return (
+                <>
+                  <PriceTag
+                    price={quote ? quote.price : range.min}
+                    mrp={quote ? quote.mrp : range.varied ? 0 : productData.mrp}
+                    currency={currency}
+                    size="detail"
+                  />
+                  {!quote && range.varied && (
+                    <p className="mt-2 text-xs text-[#6B635C]">
+                      From {currency}
+                      {range.min}. Discount changes with the size
+                      {range.maxOff > 0 ? `, up to ${range.maxOff}% off` : ""}.
+                    </p>
+                  )}
+                </>
+              );
+            })()}
             {offerLabel(productData, currency) && (
               <div className="mt-4 rounded-2xl border border-[#E7D3A1] bg-[#FBF6EA] px-4 py-3">
                 <p className="text-sm font-semibold text-[#1C1917]">
@@ -481,6 +499,19 @@ const Product = () => {
                     }`}
                   >
                     {item}
+                    {(() => {
+                      const quote = variantPrice(
+                        productData,
+                        item,
+                        (productData.colors || []).length ? color : "",
+                      );
+                      if (!(quote.price > 0)) return null;
+                      return (
+                        <span className={`block text-[9px] font-normal tracking-normal ${item === size ? "text-white/80" : "text-[#7A3030]"}`}>
+                          ₹{quote.price}
+                        </span>
+                      );
+                    })()}
                     {low && (
                       <span className="block text-[9px] font-normal tracking-normal text-amber-600">
                         {stockRow.quantity} left

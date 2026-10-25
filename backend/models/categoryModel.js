@@ -4,7 +4,7 @@ const subCategorySchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
     active: { type: Boolean, default: true },
-    sizeType: { type: String, enum: ["apparel", "bottom"], default: "apparel" },
+    sizeType: { type: String, enum: ["apparel", "bottom", "cm"], default: "apparel" },
   },
   { _id: false },
 );

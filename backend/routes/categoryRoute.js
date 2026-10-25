@@ -9,6 +9,7 @@ import {
   removeSubCategory,
   toggleCategory,
   toggleSubCategory,
+  updateSubSizeType,
 } from "../controllers/categoryController.js";
 
 const categoryRouter = express.Router();
@@ -19,6 +20,7 @@ categoryRouter.post("/add", adminAuth, addCategory);
 categoryRouter.post("/subcategory", adminAuth, addSubCategory);
 categoryRouter.post("/toggle", adminAuth, toggleCategory);
 categoryRouter.post("/toggle-sub", adminAuth, toggleSubCategory);
+categoryRouter.post("/sub-size", adminAuth, updateSubSizeType);
 categoryRouter.post("/remove", adminAuth, removeCategory);
 categoryRouter.post("/remove-sub", adminAuth, removeSubCategory);
 

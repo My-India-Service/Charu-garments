@@ -55,6 +55,8 @@ const RelatedProducts = ({ category, subCategory }) => {
               offerPrice={item.offerPrice}
               image={item.image}
               colors={item.colors}
+              sizes={item.sizes}
+              stock={item.stock}
             />
           </div>
         ))}

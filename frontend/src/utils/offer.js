@@ -1,3 +1,5 @@
+import { parseVariant, variantPrice } from "./variant";
+
 export const offerLabel = (product, currency = "₹") => {
   const pieces = Math.floor(Number(product?.offerQty) || 0);
   const deal = Number(product?.offerPrice) || 0;
@@ -29,8 +31,27 @@ export const cartOfferPricing = (products, cartItems) => {
     const product = products.find((item) => item._id === id);
     if (!product) return;
     const rows = Object.entries(sizes || {}).filter(([, qty]) => qty > 0);
+    const units = rows.map(([key]) => {
+      const parsed = parseVariant(key);
+      return variantPrice(product, parsed.size, parsed.color).price;
+    });
+    const same = units.every((unit) => unit === units[0]);
+    if (!same) {
+      rows.forEach(([size, count], index) => {
+        const lineTotal = units[index] * count;
+        subtotal += lineTotal;
+        lines.push({
+          _id: id,
+          size,
+          quantity: count,
+          lineTotal,
+          offerApplied: false,
+        });
+      });
+      return;
+    }
     const qty = rows.reduce((sum, [, count]) => sum + count, 0);
-    const priced = bundleCharge(qty, product.price, product.offerQty, product.offerPrice);
+    const priced = bundleCharge(qty, units[0] || product.price, product.offerQty, product.offerPrice);
     subtotal += priced.total;
     saving += priced.saving;
     let left = priced.total;
