@@ -39,6 +39,8 @@ const Footer = () => {
               { label: "Collection", to: "/collection" },
               { label: "Contact", to: "/contact" },
               { label: "Feedback", to: "/feedback" },
+              { label: "Become a seller", to: "/sell" },
+              { label: "Refer and earn", to: "/profile" },
             ].map(({ label, to }) => (
               <li key={label}>
                 <Link
@@ -95,8 +97,12 @@ const Footer = () => {
             Feedback
           </Link>
           <span className="h-3 w-px bg-white/15" />
-          <Link to="/about" className="transition-colors hover:text-white">
-            About
+          <Link to="/sell" className="transition-colors hover:text-white">
+            Become a seller
+          </Link>
+          <span className="h-3 w-px bg-white/15" />
+          <Link to="/profile" className="transition-colors hover:text-white">
+            Refer and earn
           </Link>
         </div>
       </div>

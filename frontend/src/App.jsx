@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 
 import Home from "./pages/Home";
@@ -26,6 +26,14 @@ const NO_FOOTER_ROUTES = ["/place-order", "/orders", "/cart"];
 
 const App = () => {
   const { pathname } = useLocation();
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const previous = root.style.scrollBehavior;
+    root.style.scrollBehavior = "auto";
+    window.scrollTo(0, 0);
+    root.style.scrollBehavior = previous;
+  }, [pathname]);
 
   const showFooter = !NO_FOOTER_ROUTES.some((route) =>
     pathname.startsWith(route),
