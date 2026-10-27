@@ -6,6 +6,7 @@ import Collection from "./pages/Collection";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Feedback from "./pages/Feedback";
+import Seller from "./pages/Seller";
 import Cart from "./pages/Cart";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -53,6 +54,8 @@ const App = () => {
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/feedback" element={<Feedback />} />
+            <Route path="/sell" element={<Seller />} />
+            <Route path="/seller" element={<Seller />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/login" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />

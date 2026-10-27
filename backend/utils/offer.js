@@ -28,7 +28,7 @@ export const lineAmount = (item) =>
 export const applyOffers = async (items = []) => {
   const ids = [...new Set(items.map((item) => String(item._id || "")).filter(Boolean))];
   const products = ids.length
-    ? await productModel.find({ _id: { $in: ids } }).select("price mrp offerQty offerPrice stock")
+    ? await productModel.find({ _id: { $in: ids } }).select("price mrp offerQty offerPrice stock sellerId sellerName")
     : [];
   const byId = new Map(products.map((product) => [String(product._id), product]));
 
@@ -71,6 +71,8 @@ export const applyOffers = async (items = []) => {
           ...line,
           price: each,
           mrp: mrpOf(line),
+          sellerId: product?.sellerId || "",
+          sellerName: product?.sellerName || "Charu Garments",
           lineTotal: roundMoney(each * count),
           offerText: "",
         });
@@ -93,6 +95,8 @@ export const applyOffers = async (items = []) => {
         ...line,
         price: unit,
         mrp: mrpOf(line),
+        sellerId: product?.sellerId || "",
+        sellerName: product?.sellerName || "Charu Garments",
         lineTotal: share,
         offerText: label,
       });

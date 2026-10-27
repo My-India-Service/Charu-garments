@@ -14,6 +14,7 @@ import {
   LogOut,
   UserCircle,
   Wallet,
+  Store,
 } from "lucide-react";
 
 const Navbar = () => {
@@ -64,6 +65,7 @@ const Navbar = () => {
             { to: "/about", label: "ABOUT" },
             { to: "/contact", label: "CONTACT" },
             { to: "/feedback", label: "FEEDBACK" },
+            { to: "/sell", label: "SELL" },
           ].map(({ to, label }) => (
             <NavLink
               key={to}
@@ -149,6 +151,17 @@ const Navbar = () => {
                     />
                     Wallet
                   </Link>
+                  <Link
+                    to="/sell"
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-gray-500 hover:text-black hover:bg-gray-50 transition-colors"
+                  >
+                    <Store
+                      size={14}
+                      strokeWidth={1.75}
+                      className="text-gray-400"
+                    />
+                    Sell
+                  </Link>
                   <div className="my-1 mx-4 border-t border-gray-100" />
                   <button
                     onClick={logout}
@@ -232,6 +245,7 @@ const Navbar = () => {
             { to: "/about", label: "About" },
             { to: "/contact", label: "Contact" },
             { to: "/feedback", label: "Feedback" },
+            { to: "/sell", label: "Sell" },
           ].map(({ to, label }) => (
             <NavLink
               key={to}
@@ -300,6 +314,15 @@ const Navbar = () => {
           >
             <Wallet size={15} strokeWidth={1.75} className="text-gray-400" />
             Wallet
+          </Link>
+
+          <Link
+            to="/sell"
+            onClick={() => setVisible(false)}
+            className="flex items-center gap-3 px-3 py-3 text-sm text-gray-500 hover:text-black hover:bg-gray-50 rounded-lg transition-colors"
+          >
+            <Store size={15} strokeWidth={1.75} className="text-gray-400" />
+            Sell
           </Link>
 
           <div className="mx-3 my-1 border-t border-gray-100" />

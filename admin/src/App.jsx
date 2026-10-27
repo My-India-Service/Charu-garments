@@ -18,6 +18,7 @@ import Referrals from "./pages/Referrals";
 import Affiliates from "./pages/Affiliates";
 import Settings from "./pages/Settings";
 import Feedback from "./pages/Feedback";
+import Sellers from "./pages/Sellers";
 
 export const backendUrl =
   import.meta.env.VITE_BACKEND_URL || "https://charu-garments.onrender.com";
@@ -75,6 +76,7 @@ const App = () => {
                   <Route path="/referrals" element={<Referrals token={token} />} />
                   <Route path="/affiliates" element={<Affiliates token={token} />} />
                   <Route path="/feedback" element={<Feedback token={token} />} />
+                  <Route path="/sellers" element={<Sellers token={token} />} />
                   <Route path="/settings" element={<Settings token={token} />} />
                 </Routes>
               </div>

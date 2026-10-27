@@ -49,6 +49,7 @@ const RelatedProducts = ({ category, subCategory }) => {
             <ProductItem
               id={item._id}
               name={item.name}
+              sellerName={item.sellerName}
               price={item.price}
               mrp={item.mrp}
               offerQty={item.offerQty}

@@ -1,4 +1,5 @@
 import productModel from "../models/productModel.js";
+import userModel from "../models/userModel.js";
 import inventoryLogModel from "../models/inventoryLogModel.js";
 import categoryModel from "../models/categoryModel.js";
 import { ensureDefaultCategories } from "./categoryController.js";
@@ -107,6 +108,9 @@ const addProduct = async (req, res) => {
     const images = [image1, image2, image3, image4].filter(
       (item) => item !== undefined,
     );
+    if (!images.length) {
+      return res.json({ success: false, message: "Upload at least one image" });
+    }
 
     const imagesUrl = await Promise.all(
       images.map(async (item) => {
@@ -127,12 +131,16 @@ const addProduct = async (req, res) => {
       mrp: catalog.mrp,
       ...parseOffer(catalog.price, offerQty, offerPrice),
       subCategory,
-      bestseller: bestseller === "true" ? true : false,
+      bestseller: req.seller ? false : bestseller === "true",
       sizes: parsedSizes,
       colors: parsedColors,
       stock: parsedStock,
       image: imagesUrl,
       date: Date.now(),
+      sellerId: req.seller ? String(req.seller._id) : "",
+      sellerName: req.seller ? req.seller.shopName : "",
+      listingStatus: req.seller ? "pending" : "live",
+      ...(req.seller ? { active: false } : {}),
     };
 
     const product = new productModel(productData);
@@ -178,8 +186,11 @@ const listProducts = async (req, res) => {
     });
     res.json({
       success: true,
-      products: products.filter((product) =>
-        allowed.has(`${product.category}::${product.subCategory}`),
+      products: products.filter(
+        (product) =>
+          allowed.has(`${product.category}::${product.subCategory}`) &&
+          product.listingStatus !== "pending" &&
+          product.listingStatus !== "rejected",
       ),
     });
   } catch (error) {
@@ -206,6 +217,17 @@ const setProductActive = async (req, res) => {
       product.active = req.body.active;
     } else {
       product.active = product.active === false;
+    }
+    if (product.sellerId) {
+      if (product.active) {
+        const seller = await userModel.findById(product.sellerId).select("sellerStatus");
+        if (seller?.sellerStatus !== "approved") {
+          return res.json({ success: false, message: "Approve the shop first" });
+        }
+        product.listingStatus = "live";
+      } else if (product.listingStatus === "live") {
+        product.listingStatus = "pending";
+      }
     }
     await product.save();
     res.json({
@@ -252,6 +274,14 @@ const singleProduct = async (req, res) => {
   try {
     const { productId } = req.body;
     const product = await productModel.findById(productId);
+    if (
+      !product ||
+      product.active === false ||
+      product.listingStatus === "pending" ||
+      product.listingStatus === "rejected"
+    ) {
+      return res.json({ success: false, message: "Product not found" });
+    }
     res.json({ success: true, product });
   } catch (error) {
     console.log(error);
@@ -285,6 +315,10 @@ const updateProduct = async (req, res) => {
         success: false,
         message: "Product not found",
       });
+    }
+
+    if (req.seller && String(product.sellerId || "") !== String(req.seller._id)) {
+      return res.json({ success: false, message: "You can only edit your own products" });
     }
 
     // Existing images
@@ -346,9 +380,13 @@ const updateProduct = async (req, res) => {
         ...(category && { category }),
         ...(subCategory && { subCategory }),
         ...(sizes && { sizes: nextSizes, colors: nextColors, stock: nextStock }),
-        ...(bestseller !== undefined && {
+        ...(bestseller !== undefined &&
+          !req.seller && {
           bestseller: bestseller === "true",
         }),
+        ...(req.seller && product.listingStatus !== "live"
+          ? { listingStatus: "pending", active: false }
+          : {}),
         image: images,
       },
       {

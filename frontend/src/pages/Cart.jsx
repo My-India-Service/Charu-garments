@@ -105,6 +105,9 @@ const Cart = () => {
                 >
                   {productData.name}
                 </p>
+                <p className="mt-1 text-xs text-[#8A8178]">
+                  Sold by {productData.sellerName || "Charu Garments"}
+                </p>
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1.5">
                   <PriceTag
                     price={variantPrice(productData, variant.size, variant.color).price}

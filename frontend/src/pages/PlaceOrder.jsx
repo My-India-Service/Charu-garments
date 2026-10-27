@@ -280,6 +280,8 @@ const PlaceOrder = () => {
               const variant = parseVariant(item);
               itemInfo.color = variant.color;
               itemInfo.size = variant.size;
+              itemInfo.sellerId = itemInfo.sellerId || "";
+              itemInfo.sellerName = itemInfo.sellerName || "Charu Garments";
               itemInfo.quantity = cartItems[items][item];
               orderItems.push(itemInfo);
             }

@@ -35,6 +35,13 @@ const productSchema = new mongoose.Schema({
   lowStockThreshold: { type: Number, default: 5, min: 0 },
   bestseller: { type: Boolean },
   active: { type: Boolean, default: true },
+  sellerId: { type: String, default: "" },
+  sellerName: { type: String, default: "" },
+  listingStatus: {
+    type: String,
+    enum: ["live", "pending", "rejected"],
+    default: "live",
+  },
   date: { type: Number, required: true },
 });
 

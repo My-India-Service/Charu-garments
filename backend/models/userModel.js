@@ -13,6 +13,13 @@ const userSchema = new mongoose.Schema(
     referredBy: { type: String, default: "" },
     resetPasswordToken: { type: String, default: "" },
     resetPasswordExpires: { type: Number, default: 0 },
+    sellerStatus: {
+      type: String,
+      enum: ["none", "pending", "approved", "blocked"],
+      default: "none",
+    },
+    shopName: { type: String, default: "" },
+    shopPhone: { type: String, default: "" },
   },
   { minimize: false },
 );

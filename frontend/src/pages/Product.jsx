@@ -339,6 +339,9 @@ const Product = () => {
           <h1 className="text-2xl sm:text-[1.75rem] lg:text-[2rem] font-semibold leading-tight tracking-tight text-gray-900">
             {productData.name}
           </h1>
+          <p className="mt-2 text-sm text-[#8A8178]">
+            Sold by {productData.sellerName || "Charu Garments"}
+          </p>
 
           {/* Stars + review count */}
           <div className="flex items-center gap-1.5 mt-3">

@@ -481,6 +481,9 @@ const OrderDetails = () => {
                     <p className="text-sm font-medium text-gray-900 leading-snug">
                       {item.name}
                     </p>
+                    <p className="text-xs text-gray-400">
+                      Sold by {item.sellerName || "Charu Garments"}
+                    </p>
                     <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
                       {item.color && (
                         <span className="text-xs px-2 py-0.5 border border-gray-200 bg-gray-50 text-gray-600 rounded-sm uppercase tracking-wider font-medium">

@@ -16,6 +16,7 @@ const ProductItem = ({
   colors = [],
   sizes = [],
   stock = [],
+  sellerName = "",
 }) => {
   const { currency } = useContext(ShopContext);
   const range = priceRange({ price, mrp, colors, sizes, stock });
@@ -66,6 +67,7 @@ const ProductItem = ({
         <p className="line-clamp-2 text-[13px] leading-snug text-[#3F3832] transition-colors duration-150 group-hover:text-[#1C1917]">
           {name}
         </p>
+        <p className="text-[11px] text-[#8A8178]">Sold by {sellerName || "Charu Garments"}</p>
         {range.varied ? (
           <p className="text-sm font-semibold text-[#7A3030]">
             From {currency}

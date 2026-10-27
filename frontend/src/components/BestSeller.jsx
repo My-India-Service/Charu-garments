@@ -47,6 +47,7 @@ const BestSeller = () => {
             id={item._id}
             image={item.image}
             name={item.name}
+            sellerName={item.sellerName}
             price={item.price}
             mrp={item.mrp}
             offerQty={item.offerQty}

@@ -621,6 +621,8 @@ const Orders = ({ token }) => {
                           }`}
                         >
                           {item.name}
+                          <span className="mx-1 text-slate-300">·</span>
+                          {item.sellerName || "Charu Garments"}
                           <span className="mx-1 text-slate-300">·</span>×
                           {item.quantity}
                           <span className="ml-1 text-slate-400">
