@@ -81,9 +81,11 @@ const Contact = () => {
                   Charu Garments
                 </p>
 
-                <p className="text-sm text-gray-500 mt-1 whitespace-pre-line">
-                  {siteSettings.address}
-                </p>
+                {siteSettings.address ? (
+                  <p className="text-sm text-gray-500 mt-1 whitespace-pre-line">
+                    {siteSettings.address}
+                  </p>
+                ) : null}
               </div>
             </div>
           </div>
@@ -95,25 +97,29 @@ const Contact = () => {
             </p>
 
             <div className="flex flex-col gap-4">
-              <a
-                href={phoneHref}
-                className="flex items-center gap-3 text-sm text-gray-600 hover:text-black transition"
-              >
-                <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center">
-                  <Phone className="w-4 h-4 text-white" />
-                </div>
-                {siteSettings.phone}
-              </a>
+              {siteSettings.phone ? (
+                <a
+                  href={phoneHref}
+                  className="flex items-center gap-3 text-sm text-gray-600 hover:text-black transition"
+                >
+                  <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center">
+                    <Phone className="w-4 h-4 text-white" />
+                  </div>
+                  {siteSettings.phone}
+                </a>
+              ) : null}
 
-              <a
-                href={`mailto:${siteSettings.email}`}
-                className="flex items-center gap-3 text-sm text-gray-600 hover:text-black transition"
-              >
-                <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center">
-                  <Mail className="w-4 h-4 text-white" />
-                </div>
-                {siteSettings.email}
-              </a>
+              {siteSettings.email ? (
+                <a
+                  href={`mailto:${siteSettings.email}`}
+                  className="flex items-center gap-3 text-sm text-gray-600 hover:text-black transition"
+                >
+                  <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center">
+                    <Mail className="w-4 h-4 text-white" />
+                  </div>
+                  {siteSettings.email}
+                </a>
+              ) : null}
             </div>
           </div>
 

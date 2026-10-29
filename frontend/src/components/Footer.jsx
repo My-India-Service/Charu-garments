@@ -59,27 +59,33 @@ const Footer = () => {
             Get in Touch
           </p>
           <ul className="flex flex-col gap-2.5">
-            <li>
-              <p className="whitespace-pre-line text-[13px] text-[#C9C1B8]">
-                {siteSettings.address}
-              </p>
-            </li>
-            <li>
-              <a
-                href={phoneHref}
-                className="text-[13px] text-[#C9C1B8] transition-colors duration-150 hover:text-white"
-              >
-                {siteSettings.phone}
-              </a>
-            </li>
-            <li>
-              <a
-                href={`mailto:${siteSettings.email}`}
-                className="text-[13px] text-[#C9C1B8] transition-colors duration-150 hover:text-white"
-              >
-                {siteSettings.email}
-              </a>
-            </li>
+            {siteSettings.address ? (
+              <li>
+                <p className="whitespace-pre-line text-[13px] text-[#C9C1B8]">
+                  {siteSettings.address}
+                </p>
+              </li>
+            ) : null}
+            {siteSettings.phone ? (
+              <li>
+                <a
+                  href={phoneHref}
+                  className="text-[13px] text-[#C9C1B8] transition-colors duration-150 hover:text-white"
+                >
+                  {siteSettings.phone}
+                </a>
+              </li>
+            ) : null}
+            {siteSettings.email ? (
+              <li>
+                <a
+                  href={`mailto:${siteSettings.email}`}
+                  className="text-[13px] text-[#C9C1B8] transition-colors duration-150 hover:text-white"
+                >
+                  {siteSettings.email}
+                </a>
+              </li>
+            ) : null}
           </ul>
         </div>
       </div>

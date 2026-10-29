@@ -20,9 +20,9 @@ const ShopContextProvider = (props) => {
     freeAbove: 0,
   });
   const [siteSettings, setSiteSettings] = useState({
-    phone: "+91 9876543201",
-    email: "support@charugarments.com",
-    address: "Bhimavaram, Andhra Pradesh, India",
+    phone: "",
+    email: "",
+    address: "",
   });
   const delivery_fee = Number(deliverySettings.defaultCharge ?? 10);
   const freeAbove = Number(deliverySettings.freeAbove || 0);

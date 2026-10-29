@@ -497,11 +497,16 @@ const PlaceOrder = () => {
         {pickup && (
           <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3.5">
             <p className="text-sm font-medium text-gray-800">Collect from</p>
-            <p className="mt-1 text-sm text-gray-600 leading-relaxed">{siteSettings.address}</p>
-            <p className="mt-1 text-xs text-gray-500">
-              {siteSettings.phone}
-              {siteSettings.email ? ` · ${siteSettings.email}` : ""}
-            </p>
+            {siteSettings.address ? (
+              <p className="mt-1 text-sm text-gray-600 leading-relaxed">{siteSettings.address}</p>
+            ) : null}
+            {siteSettings.phone || siteSettings.email ? (
+              <p className="mt-1 text-xs text-gray-500">
+                {siteSettings.phone}
+                {siteSettings.phone && siteSettings.email ? " · " : ""}
+                {siteSettings.email}
+              </p>
+            ) : null}
             <p className="mt-2 text-xs text-gray-500">
               We will tell you when the order is ready. Bring this phone number to the shop.
             </p>
