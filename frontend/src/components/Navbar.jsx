@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { assets } from "../assets/assets";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useContext } from "react";
@@ -28,6 +29,15 @@ const Navbar = () => {
     setCartItems,
   } = useContext(ShopContext);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!visible) return undefined;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [visible]);
 
   const logout = () => {
     localStorage.removeItem("token");
@@ -204,10 +214,12 @@ const Navbar = () => {
         </div>
       </div>
 
+      {createPortal(
+        <>
       {/* Backdrop */}
       <div
         onClick={() => setVisible(false)}
-        className={`fixed inset-0 bg-black/20 z-40 sm:hidden transition-opacity duration-300 ${
+        className={`fixed inset-0 z-[70] bg-black/30 transition-opacity duration-300 sm:hidden ${
           visible
             ? "opacity-100 pointer-events-auto"
             : "opacity-0 pointer-events-none"
@@ -216,26 +228,27 @@ const Navbar = () => {
 
       {/* Drawer */}
       <div
-        className={`fixed top-0 right-0 h-full w-72 bg-white z-50 flex flex-col transition-transform duration-300 ease-in-out sm:hidden border-l border-gray-100 ${
+        className={`fixed inset-y-0 right-0 z-[80] flex h-dvh w-[min(20rem,88vw)] flex-col border-l border-gray-100 bg-white transition-transform duration-300 ease-in-out sm:hidden ${
           visible ? "translate-x-0" : "translate-x-full"
         }`}
       >
         {/* Drawer Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-5 py-4 pt-[max(1rem,env(safe-area-inset-top))]">
           <Link to="/" onClick={() => setVisible(false)} className="inline-flex bg-white">
-            <img src={assets.logo} className="h-16 w-16 mix-blend-multiply object-contain" alt="Charu Garments" />
+            <img src={assets.logo} className="h-14 w-14 mix-blend-multiply object-contain" alt="Charu Garments" />
           </Link>
           <button
             onClick={() => setVisible(false)}
-            className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-black transition-colors"
+            className="flex h-10 w-10 items-center justify-center text-gray-400 transition-colors hover:text-black"
             aria-label="Close menu"
           >
             <X size={18} strokeWidth={1.75} />
           </button>
         </div>
 
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain pb-[env(safe-area-inset-bottom)]">
         {/* Nav Links */}
-        <nav className="flex flex-col mt-1 px-2">
+        <nav className="flex flex-col px-2">
           <p className="text-[10px] text-gray-400 uppercase tracking-widest px-3 pt-3 pb-1">
             Menu
           </p>
@@ -349,7 +362,11 @@ const Navbar = () => {
             </Link>
           )}
         </div>
+        </div>
       </div>
+        </>,
+        document.body,
+      )}
     </>
   );
 };
