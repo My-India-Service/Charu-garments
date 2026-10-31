@@ -24,6 +24,20 @@ const ShopContextProvider = (props) => {
     email: "",
     address: "",
   });
+  const [categories, setCategories] = useState([
+    {
+      name: "Men",
+      subCategories: [{ name: "Topwear" }, { name: "Bottomwear" }, { name: "Winterwear" }],
+    },
+    {
+      name: "Women",
+      subCategories: [{ name: "Topwear" }, { name: "Bottomwear" }, { name: "Winterwear" }],
+    },
+    {
+      name: "Kids",
+      subCategories: [{ name: "Topwear" }, { name: "Bottomwear" }, { name: "Winterwear" }],
+    },
+  ]);
   const delivery_fee = Number(deliverySettings.defaultCharge ?? 10);
   const freeAbove = Number(deliverySettings.freeAbove || 0);
 
@@ -191,6 +205,12 @@ const ShopContextProvider = (props) => {
         if (response.data.success) setSiteSettings(response.data.settings);
       })
       .catch(() => {});
+    axios
+      .get(backendUrl + "/api/category/list")
+      .then((response) => {
+        if (response.data.success) setCategories(response.data.categories || []);
+      })
+      .catch(() => {});
   }, [backendUrl]);
 
   useEffect(() => {
@@ -236,6 +256,7 @@ const ShopContextProvider = (props) => {
     setToken,
     token,
     siteSettings,
+    categories,
   };
 
   return (

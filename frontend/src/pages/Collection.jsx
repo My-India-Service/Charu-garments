@@ -1,5 +1,4 @@
 import React, { useContext, useEffect, useState } from "react";
-import axios from "axios";
 import { useSearchParams } from "react-router-dom";
 import { ShopContext } from "../context/ShopContext";
 import { categoryBanners } from "../components/HomeBanners";
@@ -8,7 +7,7 @@ import Title from "../components/Title";
 import ProductItem from "../components/ProductItem";
 
 const Collection = () => {
-  const { products, search, showSearch, backendUrl } = useContext(ShopContext);
+  const { products, search, showSearch, categories: catalog } = useContext(ShopContext);
   const [params] = useSearchParams();
 
   const [showFilter, setShowFilter] = useState(false);
@@ -21,26 +20,22 @@ const Collection = () => {
 
   useEffect(() => {
     const name = params.get("category");
-    if (name && ["Men", "Women", "Kids"].includes(name)) setCategory([name]);
+    const type = params.get("subCategory");
+    setCategory(name ? [name] : []);
+    setSubCategory(type ? [type] : []);
   }, [params]);
 
   useEffect(() => {
-    axios
-      .get(backendUrl + "/api/category/list")
-      .then((response) => {
-        if (!response.data.success) return;
-        const rows = response.data.categories || [];
-        setCategoryOptions(rows.map((item) => item.name));
-        setSubCategoryOptions([
-          ...new Set(
-            rows.flatMap((item) =>
-              (item.subCategories || []).map((sub) => sub.name),
-            ),
-          ),
-        ]);
-      })
-      .catch(() => {});
-  }, [backendUrl]);
+    const rows = catalog || [];
+    setCategoryOptions(rows.map((item) => item.name));
+    setSubCategoryOptions([
+      ...new Set(
+        rows.flatMap((item) =>
+          (item.subCategories || []).map((sub) => sub.name),
+        ),
+      ),
+    ]);
+  }, [catalog]);
 
   const toggleCategory = (e) => {
     if (category.includes(e.target.value)) {
@@ -246,7 +241,10 @@ const Collection = () => {
         )}
         {/* Header row */}
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <Title text1={"ALL"} text2={"COLLECTIONS"} />
+          <Title
+            text1={subCategory[0] ? category[0] || "SHOP" : category[0] ? "SHOP" : "ALL"}
+            text2={subCategory[0] || category[0] || "COLLECTIONS"}
+          />
 
           <select
             onChange={(e) => setSortType(e.target.value)}
