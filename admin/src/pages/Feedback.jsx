@@ -112,6 +112,19 @@ const Feedback = ({ token }) => {
                     >
                       {row.status === "new" ? "New" : "Read"}
                     </span>
+                    {row.sentiment ? (
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ${
+                          row.sentiment === "positive"
+                            ? "bg-emerald-50 text-emerald-700"
+                            : row.sentiment === "negative"
+                              ? "bg-rose-50 text-rose-700"
+                              : "bg-slate-100 text-slate-600"
+                        }`}
+                      >
+                        AI {row.sentiment}
+                      </span>
+                    ) : null}
                   </div>
                   <p className="mt-1 text-xs text-gray-500">
                     {row.email}

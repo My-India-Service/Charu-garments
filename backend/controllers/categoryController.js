@@ -14,21 +14,26 @@ const DEFAULTS = ["Men", "Women", "Kids"].map((name) => ({
 const sameName = (left, right) =>
   left.trim().toLowerCase() === right.trim().toLowerCase();
 
+let defaultsReady = false;
+
 export const ensureDefaultCategories = async () => {
+  if (defaultsReady) return;
   const count = await categoryModel.countDocuments();
   if (count === 0) await categoryModel.insertMany(DEFAULTS);
+  defaultsReady = true;
 };
 
 const listCategories = async (req, res) => {
   try {
     await ensureDefaultCategories();
-    const categories = await categoryModel.find({}).sort({ name: 1 });
-    const visible = categories
-      .filter((category) => category.active)
-      .map((category) => ({
-        ...category.toObject(),
-        subCategories: category.subCategories.filter((sub) => sub.active),
-      }));
+    const categories = await categoryModel
+      .find({ active: true })
+      .sort({ name: 1 })
+      .lean();
+    const visible = categories.map((category) => ({
+      ...category,
+      subCategories: (category.subCategories || []).filter((sub) => sub.active),
+    }));
     res.json({ success: true, categories: visible });
   } catch (error) {
     console.log(error);

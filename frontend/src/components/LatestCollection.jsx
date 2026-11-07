@@ -4,7 +4,7 @@ import Title from "./Title";
 import ProductItem from "./ProductItem";
 
 const LatestCollection = () => {
-  const { products } = useContext(ShopContext);
+  const { products, productsLoading } = useContext(ShopContext);
 
   const [latestProducts, setLatestProducts] = useState([]);
 
@@ -41,22 +41,30 @@ const LatestCollection = () => {
 
       {/* Product Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 gap-y-7 sm:gap-y-8">
-        {latestProducts.map((item) => (
-          <ProductItem
-            key={item._id}
-            id={item._id}
-            image={item.image}
-            name={item.name}
-            sellerName={item.sellerName}
-            price={item.price}
-            mrp={item.mrp}
-            offerQty={item.offerQty}
-            offerPrice={item.offerPrice}
-            colors={item.colors}
-            sizes={item.sizes}
-            stock={item.stock}
-          />
-        ))}
+        {productsLoading && !latestProducts.length
+          ? Array.from({ length: 5 }).map((_, index) => (
+              <div key={index} className="animate-pulse">
+                <div className="aspect-[3/4] rounded-2xl bg-[#EBE6DF]" />
+                <div className="mt-3 h-3 w-3/4 rounded bg-[#EBE6DF]" />
+                <div className="mt-2 h-3 w-1/2 rounded bg-[#EBE6DF]" />
+              </div>
+            ))
+          : latestProducts.map((item) => (
+              <ProductItem
+                key={item._id}
+                id={item._id}
+                image={item.image}
+                name={item.name}
+                sellerName={item.sellerName}
+                price={item.price}
+                mrp={item.mrp}
+                offerQty={item.offerQty}
+                offerPrice={item.offerPrice}
+                colors={item.colors}
+                sizes={item.sizes}
+                stock={item.stock}
+              />
+            ))}
       </div>
     </div>
   );

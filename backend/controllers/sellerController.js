@@ -1,6 +1,7 @@
 import userModel from "../models/userModel.js";
 import productModel from "../models/productModel.js";
 import orderModel from "../models/orderModel.js";
+import { clearStoreProductCache } from "./productController.js";
 
 const shopView = (user) => ({
   sellerStatus: user.sellerStatus || "none",
@@ -116,6 +117,7 @@ const setSellerStatus = async (req, res) => {
         { sellerId: String(user._id) },
         { active: false },
       );
+      clearStoreProductCache();
     }
     res.json({ success: true, message: `Shop ${status}` });
   } catch (error) {
@@ -143,6 +145,7 @@ const reviewSellerProduct = async (req, res) => {
       return res.json({ success: false, message: "Choose approve or reject" });
     }
     await product.save();
+    clearStoreProductCache();
     res.json({
       success: true,
       message: product.listingStatus === "live" ? "Product is live" : "Product rejected",

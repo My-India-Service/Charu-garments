@@ -37,6 +37,8 @@ const ProductItem = ({
           className="h-full w-full object-cover object-top transition-transform duration-700 group-hover:scale-105"
           src={image[0]}
           alt={name}
+          loading="lazy"
+          decoding="async"
         />
         {off > 0 && (
           <span className="absolute left-2.5 top-2.5 rounded-full bg-[#7A3030] px-2.5 py-1 text-[10px] font-semibold tracking-wide text-white shadow-sm">

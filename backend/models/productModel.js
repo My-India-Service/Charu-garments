@@ -45,6 +45,9 @@ const productSchema = new mongoose.Schema({
   date: { type: Number, required: true },
 });
 
+productSchema.index({ active: 1, listingStatus: 1, date: -1 });
+productSchema.index({ category: 1, subCategory: 1, active: 1 });
+
 const productModel =
   mongoose.models.product || mongoose.model("product", productSchema);
 

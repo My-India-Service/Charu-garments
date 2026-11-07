@@ -44,6 +44,7 @@ const SellerProductForm = ({ backendUrl, token, product, onSaved, onCancel }) =>
   const [sizeDeal, setSizeDeal] = useState({});
   const [images, setImages] = useState([null, null, null, null]);
   const [saving, setSaving] = useState(false);
+  const [aiWriting, setAiWriting] = useState(false);
 
   useEffect(() => {
     axios.get(backendUrl + "/api/category/list").then((response) => {
@@ -223,10 +224,43 @@ const SellerProductForm = ({ backendUrl, token, product, onSaved, onCancel }) =>
         Name
         <input className={field} value={name} onChange={(e) => setName(e.target.value)} />
       </label>
-      <label className="block text-sm">
-        Description
+      <div>
+        <div className="mb-1 flex items-center justify-between gap-2">
+          <span className="text-sm">Description</span>
+          <button
+            type="button"
+            disabled={aiWriting || !name.trim()}
+            onClick={async () => {
+              if (!name.trim()) {
+                toast.error("Enter the product name first");
+                return;
+              }
+              setAiWriting(true);
+              try {
+                const response = await axios.post(
+                  backendUrl + "/api/ai/describe",
+                  { name, category, subCategory, colors },
+                  { headers: { token } },
+                );
+                if (response.data.success) {
+                  setDescription(response.data.description);
+                  toast.success("AI description ready");
+                } else {
+                  toast.error(response.data.message);
+                }
+              } catch (error) {
+                toast.error(error.response?.data?.message || "Could not generate description");
+              } finally {
+                setAiWriting(false);
+              }
+            }}
+            className="rounded-full bg-[#EBE6DF] px-3 py-1 text-xs disabled:opacity-50"
+          >
+            {aiWriting ? "Writing..." : "Generate with AI"}
+          </button>
+        </div>
         <textarea className={field} rows={4} value={description} onChange={(e) => setDescription(e.target.value)} />
-      </label>
+      </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block text-sm">
           Selling price

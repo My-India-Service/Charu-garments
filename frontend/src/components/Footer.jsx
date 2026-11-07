@@ -2,10 +2,12 @@ import React, { useContext } from "react";
 import { assets } from "../assets/assets";
 import { Link } from "react-router-dom";
 import { ShopContext } from "../context/ShopContext";
+import { whatsappBulkLink } from "../utils/whatsapp";
 
 const Footer = () => {
   const { siteSettings } = useContext(ShopContext);
   const phoneHref = `tel:${String(siteSettings.phone || "").replace(/[^\d+]/g, "")}`;
+  const bulkWhatsApp = whatsappBulkLink(siteSettings.phone);
 
   return (
     <footer className="mt-20 bg-[#1C1917] text-[#F4F0EA] sm:mt-28">
@@ -73,6 +75,18 @@ const Footer = () => {
                   className="text-[13px] text-[#C9C1B8] transition-colors duration-150 hover:text-white"
                 >
                   {siteSettings.phone}
+                </a>
+              </li>
+            ) : null}
+            {bulkWhatsApp ? (
+              <li>
+                <a
+                  href={bulkWhatsApp}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[13px] text-[#25D366] transition-colors duration-150 hover:text-white"
+                >
+                  Bulk order on WhatsApp
                 </a>
               </li>
             ) : null}

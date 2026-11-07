@@ -12,6 +12,7 @@ const ShopContextProvider = (props) => {
     import.meta.env.VITE_BACKEND_URL || "https://charu-garments.onrender.com";
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState([]);
+  const [productsLoading, setProductsLoading] = useState(true);
   const [showSearch, setShowSearch] = useState(false);
   const [cartItems, setCartItems] = useState({});
   const [token, setToken] = useState("");
@@ -159,16 +160,21 @@ const ShopContextProvider = (props) => {
   const getOfferSaving = () => cartOfferPricing(products, cartItems).saving;
 
   const getProductsData = async () => {
+    setProductsLoading(true);
     try {
-      const response = await axios.get(backendUrl + "/api/product/list");
+      const response = await axios.get(backendUrl + "/api/product/list", {
+        timeout: 20000,
+      });
       if (response.data.success) {
-        setProducts(response.data.products);
+        setProducts(response.data.products || []);
       } else {
         toast.error(response.data.message);
       }
     } catch (error) {
       console.log(error);
-      toast.error(error.message);
+      toast.error(error.message || "Could not load products");
+    } finally {
+      setProductsLoading(false);
     }
   };
 
@@ -238,6 +244,7 @@ const ShopContextProvider = (props) => {
 
   const value = {
     products,
+    productsLoading,
     currency,
     delivery_fee,
     freeAbove,

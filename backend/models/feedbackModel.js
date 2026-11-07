@@ -7,6 +7,12 @@ const feedbackSchema = new mongoose.Schema({
   rating: { type: Number, required: true, min: 1, max: 5 },
   message: { type: String, required: true },
   status: { type: String, enum: ["new", "read"], default: "new" },
+  sentiment: {
+    type: String,
+    enum: ["positive", "neutral", "negative", ""],
+    default: "",
+  },
+  sentimentScore: { type: Number, default: 0 },
   date: { type: Number, required: true },
 });
 

@@ -4,6 +4,7 @@ import Title from "../components/Title";
 import { assets } from "../assets/assets";
 import NewsletterBox from "../components/NewsletterBox";
 import { ShopContext } from "../context/ShopContext";
+import { whatsappBulkLink } from "../utils/whatsapp";
 import {
   Phone,
   Mail,
@@ -19,6 +20,7 @@ import {
 const Contact = () => {
   const { siteSettings } = useContext(ShopContext);
   const phoneHref = `tel:${String(siteSettings.phone || "").replace(/[^\d+]/g, "")}`;
+  const bulkWhatsApp = whatsappBulkLink(siteSettings.phone);
   const features = [
     {
       icon: <Sparkles className="w-4 h-4" />,
@@ -118,6 +120,17 @@ const Contact = () => {
                     <Mail className="w-4 h-4 text-white" />
                   </div>
                   {siteSettings.email}
+                </a>
+              ) : null}
+
+              {bulkWhatsApp ? (
+                <a
+                  href={bulkWhatsApp}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 inline-flex items-center justify-center gap-2 rounded-full bg-[#25D366] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#1ebe57]"
+                >
+                  Bulk order on WhatsApp
                 </a>
               ) : null}
             </div>

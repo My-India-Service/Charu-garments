@@ -19,7 +19,9 @@ import referralRouter from "./routes/referralRoute.js";
 import affiliateRouter from "./routes/affiliateRoute.js";
 import feedbackRouter from "./routes/feedbackRoute.js";
 import sellerRouter from "./routes/sellerRoute.js";
+import aiRouter from "./routes/aiRoute.js";
 import { robots, sitemap } from "./controllers/seoController.js";
+import { warmAiModels } from "./utils/huggingface.js";
 
 // App Config
 const app = express();
@@ -31,9 +33,11 @@ app.use(cors());
 connectCloudinary();
 
 await connectDB();
-syncStoredImages().catch((error) => {
-  console.error("Cloudinary image sync failed:", error.message);
-});
+setTimeout(() => {
+  syncStoredImages().catch((error) => {
+    console.error("Cloudinary image sync failed:", error.message);
+  });
+}, 15_000);
 
 // API Endpoints
 app.get("/", (req, res) => {
@@ -56,9 +60,14 @@ app.use("/api/referral", referralRouter);
 app.use("/api/affiliate", affiliateRouter);
 app.use("/api/feedback", feedbackRouter);
 app.use("/api/seller", sellerRouter);
+app.use("/api/ai", aiRouter);
 app.get("/robots.txt", robots);
 app.get("/sitemap.xml", sitemap);
 
 app.listen(port, () => {
   console.log("Server started on PORT : " + port);
+  // Delay AI warm-up so product API stays fast on boot
+  setTimeout(() => {
+    warmAiModels().catch(() => {});
+  }, 45_000);
 });

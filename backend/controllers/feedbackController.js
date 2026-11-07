@@ -1,4 +1,5 @@
 import feedbackModel from "../models/feedbackModel.js";
+import { analyzeSentiment } from "../utils/huggingface.js";
 
 const submitFeedback = async (req, res) => {
   try {
@@ -30,12 +31,24 @@ const submitFeedback = async (req, res) => {
       });
     }
 
+    let sentiment = "";
+    let sentimentScore = 0;
+    try {
+      const mood = await analyzeSentiment(message);
+      sentiment = mood.label;
+      sentimentScore = mood.score;
+    } catch (error) {
+      console.log("Feedback sentiment skipped:", error.message);
+    }
+
     await feedbackModel.create({
       name,
       email,
       phone,
       rating,
       message,
+      sentiment,
+      sentimentScore,
       date: Date.now(),
     });
 

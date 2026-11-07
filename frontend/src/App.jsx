@@ -21,6 +21,8 @@ import WalletPage from "./pages/Wallet";
 import Navbar from "./components/Navbar";
 import SearchBar from "./components/SearchBar";
 import Footer from "./components/Footer";
+import AiAssistant from "./components/AiAssistant";
+import WhatsAppBulkButton from "./components/WhatsAppBulkButton";
 
 const NO_FOOTER_ROUTES = ["/place-order", "/orders", "/cart"];
 
@@ -78,6 +80,8 @@ const App = () => {
       </div>
 
       {showFooter && <Footer />}
+      <WhatsAppBulkButton />
+      <AiAssistant />
     </div>
   );
 };

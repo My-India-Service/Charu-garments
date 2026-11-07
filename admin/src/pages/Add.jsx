@@ -78,6 +78,7 @@ const Add = ({ token }) => {
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [aiWriting, setAiWriting] = useState(false);
   const [price, setPrice] = useState("");
   const [mrp, setMrp] = useState("");
   const [offerQty, setOfferQty] = useState("");
@@ -329,9 +330,53 @@ const Add = ({ token }) => {
           </div>
 
           <div>
-            <label className={labelClass} htmlFor="description">
-              Description
-            </label>
+            <div className="mb-1.5 flex items-center justify-between gap-2">
+              <label className={labelClass + " mb-0"} htmlFor="description">
+                Description
+              </label>
+              <button
+                type="button"
+                disabled={aiWriting || !name.trim()}
+                onClick={async () => {
+                  if (!name.trim()) {
+                    toast.error("Enter the product name first");
+                    return;
+                  }
+                  setAiWriting(true);
+                  try {
+                    const response = await axios.post(
+                      backendUrl + "/api/ai/describe-admin",
+                      {
+                        name,
+                        category,
+                        subCategory,
+                        colors,
+                      },
+                      { headers: { token } },
+                    );
+                    if (response.data.success) {
+                      setDescription(response.data.description);
+                      toast.success(
+                        response.data.source === "huggingface-chat"
+                          ? "AI description ready"
+                          : "Description drafted with local HF model",
+                      );
+                    } else {
+                      toast.error(response.data.message);
+                    }
+                  } catch (error) {
+                    toast.error(
+                      error.response?.data?.message || "Could not generate description",
+                    );
+                  } finally {
+                    setAiWriting(false);
+                  }
+                }}
+                className="rounded-full border border-gray-200 px-3 py-1 text-[11px] font-medium text-gray-600 hover:border-gray-400 disabled:opacity-50"
+              >
+                {aiWriting ? "Writing..." : "Generate with AI"}
+              </button>
+            </div>
             <textarea
               id="description"
               className={`${inputClass} resize-none`}

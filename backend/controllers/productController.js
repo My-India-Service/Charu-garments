@@ -5,6 +5,16 @@ import categoryModel from "../models/categoryModel.js";
 import { ensureDefaultCategories } from "./categoryController.js";
 import { uploadBuffer } from "../utils/cloudinaryUpload.js";
 
+const STORE_PRODUCT_FIELDS =
+  "name description price mrp offerQty offerPrice image category subCategory sizes colors stock bestseller sellerId sellerName date listingStatus active";
+
+let storeListCache = { at: 0, products: null };
+const STORE_LIST_TTL_MS = 20_000;
+
+const clearStoreProductCache = () => {
+  storeListCache = { at: 0, products: null };
+};
+
 const parseMrp = (price, mrp) => {
   const sale = Number(price);
   if (mrp === undefined || mrp === null || mrp === "") return 0;
@@ -163,6 +173,7 @@ const addProduct = async (req, res) => {
       );
     }
 
+    clearStoreProductCache();
     res.json({ success: true, message: "Product Added" });
   } catch (error) {
     console.log(error);
@@ -173,26 +184,34 @@ const addProduct = async (req, res) => {
 // function for list product
 const listProducts = async (req, res) => {
   try {
+    const now = Date.now();
+    if (storeListCache.products && now - storeListCache.at < STORE_LIST_TTL_MS) {
+      return res.json({ success: true, products: storeListCache.products });
+    }
+
     await ensureDefaultCategories();
     const [products, categories] = await Promise.all([
-      productModel.find({ active: { $ne: false } }),
-      categoryModel.find({ active: true }),
+      productModel
+        .find({
+          active: { $ne: false },
+          listingStatus: { $nin: ["pending", "rejected"] },
+        })
+        .select(STORE_PRODUCT_FIELDS)
+        .sort({ date: -1 })
+        .lean(),
+      categoryModel.find({ active: true }).select("name subCategories").lean(),
     ]);
     const allowed = new Set();
     categories.forEach((category) => {
-      category.subCategories.forEach((sub) => {
+      (category.subCategories || []).forEach((sub) => {
         if (sub.active) allowed.add(`${category.name}::${sub.name}`);
       });
     });
-    res.json({
-      success: true,
-      products: products.filter(
-        (product) =>
-          allowed.has(`${product.category}::${product.subCategory}`) &&
-          product.listingStatus !== "pending" &&
-          product.listingStatus !== "rejected",
-      ),
-    });
+    const visible = products.filter((product) =>
+      allowed.has(`${product.category}::${product.subCategory}`),
+    );
+    storeListCache = { at: now, products: visible };
+    res.json({ success: true, products: visible });
   } catch (error) {
     console.log(error);
     res.json({ success: false, message: error.message });
@@ -230,6 +249,7 @@ const setProductActive = async (req, res) => {
       }
     }
     await product.save();
+    clearStoreProductCache();
     res.json({
       success: true,
       message: product.active ? "Product enabled" : "Product disabled",
@@ -247,6 +267,7 @@ const setBestseller = async (req, res) => {
     if (!product) return res.json({ success: false, message: "Product not found" });
     product.bestseller = !product.bestseller;
     await product.save();
+    clearStoreProductCache();
     res.json({
       success: true,
       message: product.bestseller ? "Marked as bestseller" : "Removed from bestsellers",
@@ -262,6 +283,7 @@ const setBestseller = async (req, res) => {
 const removeProduct = async (req, res) => {
   try {
     await productModel.findByIdAndDelete(req.body.id);
+    clearStoreProductCache();
     res.json({ success: true, message: "Product Removed" });
   } catch (error) {
     console.log(error);
@@ -273,7 +295,7 @@ const removeProduct = async (req, res) => {
 const singleProduct = async (req, res) => {
   try {
     const { productId } = req.body;
-    const product = await productModel.findById(productId);
+    const product = await productModel.findById(productId).lean();
     if (
       !product ||
       product.active === false ||
@@ -395,6 +417,7 @@ const updateProduct = async (req, res) => {
       },
     );
 
+    clearStoreProductCache();
     res.json({
       success: true,
       message: "Product updated successfully",
@@ -419,4 +442,5 @@ export {
   removeProduct,
   singleProduct,
   updateProduct,
+  clearStoreProductCache,
 };
