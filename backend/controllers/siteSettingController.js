@@ -10,6 +10,7 @@ export const getSiteSettings = async () => {
 
 const publicSettings = (settings) => ({
   phone: settings.phone,
+  whatsappPhone: settings.whatsappPhone || settings.phone || "",
   email: settings.email,
   address: settings.address,
 });
@@ -27,11 +28,18 @@ const getPublicSiteSettings = async (req, res) => {
 const updateSiteSettings = async (req, res) => {
   try {
     const phone = String(req.body.phone || "").trim();
+    const whatsappPhone = String(req.body.whatsappPhone || "").trim();
     const email = String(req.body.email || "").trim();
     const address = String(req.body.address || "").trim();
 
     if (phone.replace(/\D/g, "").length < 10) {
       return res.json({ success: false, message: "Enter a valid contact number" });
+    }
+    if (whatsappPhone && whatsappPhone.replace(/\D/g, "").length < 10) {
+      return res.json({
+        success: false,
+        message: "Enter a valid WhatsApp number for bulk orders",
+      });
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.json({ success: false, message: "Enter a valid email" });
@@ -42,6 +50,7 @@ const updateSiteSettings = async (req, res) => {
 
     const settings = await getSiteSettings();
     settings.phone = phone;
+    settings.whatsappPhone = whatsappPhone || phone;
     settings.email = email;
     settings.address = address;
     await settings.save();

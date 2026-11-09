@@ -20,7 +20,7 @@ import {
 const Contact = () => {
   const { siteSettings } = useContext(ShopContext);
   const phoneHref = `tel:${String(siteSettings.phone || "").replace(/[^\d+]/g, "")}`;
-  const bulkWhatsApp = whatsappBulkLink(siteSettings.phone);
+  const bulkWhatsApp = whatsappBulkLink(siteSettings);
   const features = [
     {
       icon: <Sparkles className="w-4 h-4" />,

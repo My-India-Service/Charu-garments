@@ -10,7 +10,7 @@ const WhatsAppIcon = ({ className = "h-5 w-5" }) => (
 
 const WhatsAppBulkButton = () => {
   const { siteSettings } = useContext(ShopContext);
-  const href = whatsappBulkLink(siteSettings.phone);
+  const href = whatsappBulkLink(siteSettings);
 
   if (!href) return null;
 

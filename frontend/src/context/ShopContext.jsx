@@ -22,6 +22,7 @@ const ShopContextProvider = (props) => {
   });
   const [siteSettings, setSiteSettings] = useState({
     phone: "",
+    whatsappPhone: "",
     email: "",
     address: "",
   });

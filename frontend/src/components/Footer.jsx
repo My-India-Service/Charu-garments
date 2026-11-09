@@ -7,7 +7,7 @@ import { whatsappBulkLink } from "../utils/whatsapp";
 const Footer = () => {
   const { siteSettings } = useContext(ShopContext);
   const phoneHref = `tel:${String(siteSettings.phone || "").replace(/[^\d+]/g, "")}`;
-  const bulkWhatsApp = whatsappBulkLink(siteSettings.phone);
+  const bulkWhatsApp = whatsappBulkLink(siteSettings);
 
   return (
     <footer className="mt-20 bg-[#1C1917] text-[#F4F0EA] sm:mt-28">

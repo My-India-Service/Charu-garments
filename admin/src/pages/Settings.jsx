@@ -6,6 +6,7 @@ import { backendUrl } from "../App";
 const Settings = ({ token }) => {
   const [form, setForm] = useState({
     phone: "",
+    whatsappPhone: "",
     email: "",
     address: "",
   });
@@ -15,7 +16,15 @@ const Settings = ({ token }) => {
     axios
       .get(backendUrl + "/api/settings")
       .then((response) => {
-        if (response.data.success) setForm(response.data.settings);
+        if (response.data.success) {
+          const settings = response.data.settings || {};
+          setForm({
+            phone: settings.phone || "",
+            whatsappPhone: settings.whatsappPhone || settings.phone || "",
+            email: settings.email || "",
+            address: settings.address || "",
+          });
+        }
       })
       .catch(() => toast.error("Could not load contact details"));
   }, [token]);
@@ -51,6 +60,7 @@ const Settings = ({ token }) => {
         <h1 className="text-xl font-medium text-gray-800">Store settings</h1>
         <p className="text-sm text-gray-500 mt-1">
           These contact details show in the website footer and on the contact page.
+          Bulk order WhatsApp can use a different number.
         </p>
       </div>
 
@@ -68,6 +78,19 @@ const Settings = ({ token }) => {
             placeholder="+91 9876543201"
             className="border border-gray-200 rounded-lg px-3 py-2"
           />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-gray-600">WhatsApp number for bulk orders</span>
+          <input
+            name="whatsappPhone"
+            value={form.whatsappPhone}
+            onChange={onChange}
+            placeholder="+91 9876543201"
+            className="border border-gray-200 rounded-lg px-3 py-2"
+          />
+          <span className="text-xs text-gray-400">
+            This number opens when customers tap Bulk order on WhatsApp. Leave empty to use the contact number.
+          </span>
         </label>
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-gray-600">Email</span>

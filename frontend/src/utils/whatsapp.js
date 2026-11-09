@@ -10,9 +10,13 @@ export const whatsappDigits = (phone = "") => {
 };
 
 export const whatsappBulkLink = (
-  phone,
+  phoneOrSettings,
   message = DEFAULT_BULK_MESSAGE,
 ) => {
+  const phone =
+    phoneOrSettings && typeof phoneOrSettings === "object"
+      ? phoneOrSettings.whatsappPhone || phoneOrSettings.phone || ""
+      : phoneOrSettings;
   const digits = whatsappDigits(phone);
   if (!digits) return "";
   return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
