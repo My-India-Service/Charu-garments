@@ -95,6 +95,25 @@ const List = ({ token }) => {
     }
   };
 
+  const toggleNewArrival = async (product) => {
+    try {
+      const response = await axios.post(
+        backendUrl + "/api/product/new-arrival",
+        { id: product._id },
+        { headers: { token } },
+      );
+      if (response.data.success) {
+        toast.success(response.data.message);
+        await fetchList();
+      } else {
+        toast.error(response.data.message);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Could not update new arrival");
+    }
+  };
+
   const visible = list.filter((item) => {
     const term = query.trim().toLowerCase();
     const matchesQuery =
@@ -245,6 +264,11 @@ const List = ({ token }) => {
                         Bestseller
                       </span>
                     )}
+                    {item.newArrival && (
+                      <span className="text-[10px] font-medium rounded-full px-2 py-0.5 bg-sky-50 text-sky-700">
+                        New Arrival
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 mt-0.5 md:hidden">
                     <span className="text-xs text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">
@@ -294,6 +318,7 @@ const List = ({ token }) => {
                   <button
                     onClick={() => toggleBestseller(item)}
                     aria-label="Toggle bestseller"
+                    title="Bestseller"
                     className={`flex h-9 w-9 items-center justify-center rounded-lg border ${
                       item.bestseller
                         ? "border-amber-200 bg-amber-50 text-amber-600"
@@ -301,6 +326,18 @@ const List = ({ token }) => {
                     }`}
                   >
                     ★
+                  </button>
+                  <button
+                    onClick={() => toggleNewArrival(item)}
+                    aria-label="Toggle new arrival"
+                    title="New Arrival"
+                    className={`flex h-9 w-9 items-center justify-center rounded-lg border text-xs font-semibold ${
+                      item.newArrival
+                        ? "border-sky-200 bg-sky-50 text-sky-600"
+                        : "border-gray-200 text-gray-400 hover:bg-gray-50"
+                    }`}
+                  >
+                    N
                   </button>
                   <button
                     onClick={() => handleEdit(item)}

@@ -34,6 +34,7 @@ const productSchema = new mongoose.Schema({
   },
   lowStockThreshold: { type: Number, default: 5, min: 0 },
   bestseller: { type: Boolean },
+  newArrival: { type: Boolean, default: false },
   active: { type: Boolean, default: true },
   sellerId: { type: String, default: "" },
   sellerName: { type: String, default: "" },

@@ -177,6 +177,7 @@ const SellerProductForm = ({ backendUrl, token, product, onSaved, onCancel }) =>
     body.append("colors", JSON.stringify(colors));
     body.append("stock", JSON.stringify(rows));
     body.append("bestseller", "false");
+    body.append("newArrival", "false");
     images.forEach((file, index) => {
       if (file) body.append(`image${index + 1}`, file);
     });

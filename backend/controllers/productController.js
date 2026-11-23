@@ -6,7 +6,7 @@ import { ensureDefaultCategories } from "./categoryController.js";
 import { uploadBuffer } from "../utils/cloudinaryUpload.js";
 
 const STORE_PRODUCT_FIELDS =
-  "name description price mrp offerQty offerPrice image category subCategory sizes colors stock bestseller sellerId sellerName date listingStatus active";
+  "name description price mrp offerQty offerPrice image category subCategory sizes colors stock bestseller newArrival sellerId sellerName date listingStatus active";
 
 let storeListCache = { at: 0, products: null };
 const STORE_LIST_TTL_MS = 20_000;
@@ -107,6 +107,7 @@ const addProduct = async (req, res) => {
       sizes,
       colors,
       bestseller,
+      newArrival,
       stock,
     } = req.body;
 
@@ -142,6 +143,7 @@ const addProduct = async (req, res) => {
       ...parseOffer(catalog.price, offerQty, offerPrice),
       subCategory,
       bestseller: req.seller ? false : bestseller === "true",
+      newArrival: req.seller ? false : newArrival === "true",
       sizes: parsedSizes,
       colors: parsedColors,
       stock: parsedStock,
@@ -279,6 +281,26 @@ const setBestseller = async (req, res) => {
   }
 };
 
+const setNewArrival = async (req, res) => {
+  try {
+    const product = await productModel.findById(req.body.id);
+    if (!product) return res.json({ success: false, message: "Product not found" });
+    product.newArrival = !product.newArrival;
+    await product.save();
+    clearStoreProductCache();
+    res.json({
+      success: true,
+      message: product.newArrival
+        ? "Marked as new arrival"
+        : "Removed from new arrivals",
+      product,
+    });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
 // function for removing product
 const removeProduct = async (req, res) => {
   try {
@@ -327,6 +349,7 @@ const updateProduct = async (req, res) => {
       colors,
       stock,
       bestseller,
+      newArrival,
       removeImages,
     } = req.body;
 
@@ -406,6 +429,10 @@ const updateProduct = async (req, res) => {
           !req.seller && {
           bestseller: bestseller === "true",
         }),
+        ...(newArrival !== undefined &&
+          !req.seller && {
+          newArrival: newArrival === "true",
+        }),
         ...(req.seller && product.listingStatus !== "live"
           ? { listingStatus: "pending", active: false }
           : {}),
@@ -438,6 +465,7 @@ export {
   adminListProducts,
   setProductActive,
   setBestseller,
+  setNewArrival,
   addProduct,
   removeProduct,
   singleProduct,

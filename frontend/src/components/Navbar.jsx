@@ -1,13 +1,16 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { assets } from "../assets/assets";
 import { ShopContext } from "../context/ShopContext";
+import { categoryBanners } from "./HomeBanners";
+import { pickCategoryIcon } from "../utils/categoryIcons";
 import {
   Menu,
   X,
   ChevronDown,
   ChevronRight,
+  LayoutGrid,
   ShoppingBag,
   Search,
   User,
@@ -44,6 +47,9 @@ const fallbackCategories = ["Men", "Women", "Kids"].map((name) => ({
 const Navbar = () => {
   const [visible, setVisible] = useState(false);
   const [openShop, setOpenShop] = useState("");
+  const [megaOpen, setMegaOpen] = useState(false);
+  const [hoverCategory, setHoverCategory] = useState("");
+  const megaRef = useRef(null);
   const {
     showSearch,
     setShowSearch,
@@ -60,6 +66,12 @@ const Navbar = () => {
   const activeCategory = pathname === "/collection" ? params.get("category") || "" : "";
   const activeSub = pathname === "/collection" ? params.get("subCategory") || "" : "";
 
+  const activeMega =
+    categories.find((item) => item.name === hoverCategory) ||
+    categories.find((item) => item.name === activeCategory) ||
+    categories[0];
+  const activeSubs = activeMega?.subCategories || [];
+
   useEffect(() => {
     if (!visible) return undefined;
     const previous = document.body.style.overflow;
@@ -72,7 +84,32 @@ const Navbar = () => {
   useEffect(() => {
     setVisible(false);
     setOpenShop("");
+    setMegaOpen(false);
   }, [pathname, search]);
+
+  useEffect(() => {
+    if (!megaOpen) return undefined;
+    const onPointer = (event) => {
+      if (megaRef.current && !megaRef.current.contains(event.target)) {
+        setMegaOpen(false);
+      }
+    };
+    const onKey = (event) => {
+      if (event.key === "Escape") setMegaOpen(false);
+    };
+    document.addEventListener("mousedown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [megaOpen]);
+
+  useEffect(() => {
+    if (!megaOpen) return;
+    if (hoverCategory) return;
+    setHoverCategory(activeCategory || categories[0]?.name || "");
+  }, [megaOpen, hoverCategory, activeCategory, categories]);
 
   const logout = () => {
     localStorage.removeItem("token");
@@ -109,10 +146,17 @@ const Navbar = () => {
     <>
       <div className="flex items-center justify-between py-3 sm:py-3.5 font-medium">
         <Link to="/" className="inline-flex bg-[#F4F0EA]">
-          <img src={assets.logo} className="h-14 w-14 mix-blend-multiply object-contain sm:h-16 sm:w-16" alt="Charu Garments" />
+          <img
+            src={assets.logo}
+            className="h-14 w-14 mix-blend-multiply object-contain sm:h-16 sm:w-16"
+            alt="Charu Garments"
+          />
         </Link>
 
-        <ul className="hidden flex-1 flex-wrap items-center justify-center gap-x-5 gap-y-1 px-4 text-sm text-gray-700 lg:flex">
+        <ul
+          ref={megaRef}
+          className="relative hidden flex-1 items-center justify-center gap-x-5 px-4 text-sm text-gray-700 lg:flex"
+        >
           <NavLink to="/" end className="group flex flex-col items-center gap-1">
             {({ isActive }) => (
               <>
@@ -122,56 +166,154 @@ const Navbar = () => {
             )}
           </NavLink>
 
-          {categories.map((category) => {
-            const selected = activeCategory === category.name;
-            const subs = category.subCategories || [];
-            return (
-              <li key={category._id || category.name} className="group relative list-none">
-                <Link
-                  to={shopPath(category.name)}
-                  className="flex flex-col items-center gap-1"
-                >
-                  <span className={`inline-flex items-center gap-1 ${navText(selected)}`}>
-                    {category.name.toUpperCase()}
-                    {subs.length > 0 && <ChevronDown size={12} strokeWidth={1.75} />}
-                  </span>
-                  <hr className={navRule(selected)} />
-                </Link>
-                {subs.length > 0 && (
-                  <div className="invisible absolute left-1/2 top-full z-50 w-56 -translate-x-1/2 pt-3 opacity-0 transition-all duration-150 group-hover:visible group-hover:opacity-100">
-                    <div className="rounded-2xl border border-[#E6DFD6] bg-white py-2 shadow-[0_12px_30px_rgba(28,25,23,0.1)]">
-                      <p className="px-4 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8A8178]">
-                        Shop {category.name}
-                      </p>
-                      <Link
-                        to={shopPath(category.name)}
-                        className={`block px-4 py-2 text-[13px] ${
-                          selected && !activeSub
-                            ? "bg-[#F4F0EA] font-medium text-[#1C1917]"
-                            : "text-gray-600 hover:bg-[#F4F0EA] hover:text-black"
-                        }`}
-                      >
-                        All {category.name}
-                      </Link>
-                      {subs.map((sub) => (
-                        <Link
-                          key={sub.name}
-                          to={shopPath(category.name, sub.name)}
-                          className={`block px-4 py-2 text-[13px] ${
-                            selected && activeSub === sub.name
-                              ? "bg-[#F4F0EA] font-medium text-[#1C1917]"
-                              : "text-gray-600 hover:bg-[#F4F0EA] hover:text-black"
+          <li className="list-none">
+            <button
+              type="button"
+              onClick={() => setMegaOpen((open) => !open)}
+              aria-expanded={megaOpen}
+              aria-haspopup="true"
+              className={`inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-[11.5px] tracking-[0.15em] transition-colors ${
+                megaOpen || activeCategory
+                  ? "bg-[#1C1917] text-[#F4F0EA]"
+                  : "bg-[#EDE7DF] text-[#1C1917] hover:bg-[#E4DDD3]"
+              }`}
+            >
+              <LayoutGrid size={14} strokeWidth={1.75} />
+              CATEGORIES
+              <ChevronDown
+                size={13}
+                strokeWidth={1.75}
+                className={`transition-transform ${megaOpen ? "rotate-180" : ""}`}
+              />
+            </button>
+          </li>
+
+          {megaOpen && (
+            <div className="absolute left-1/2 top-full z-50 mt-3 w-[min(52rem,calc(100vw-3rem))] -translate-x-1/2 overflow-hidden rounded-2xl border border-[#E6DFD6] bg-white shadow-[0_20px_50px_rgba(28,25,23,0.14)]">
+              <div className="grid min-h-[22rem] grid-cols-[15.5rem_1fr]">
+                <aside className="border-r border-[#E6DFD6] bg-[#F8F5F1] py-3">
+                  <p className="px-4 pb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8A8178]">
+                    All categories
+                  </p>
+                  <div className="max-h-[24rem] overflow-y-auto">
+                    {categories.map((category) => {
+                      const selected = activeMega?.name === category.name;
+                      const Icon = pickCategoryIcon(category.name);
+                      const thumb = categoryBanners[category.name];
+                      return (
+                        <button
+                          key={category._id || category.name}
+                          type="button"
+                          onMouseEnter={() => setHoverCategory(category.name)}
+                          onFocus={() => setHoverCategory(category.name)}
+                          onClick={() => setHoverCategory(category.name)}
+                          className={`flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors ${
+                            selected
+                              ? "bg-white text-[#1C1917]"
+                              : "text-[#3F3832] hover:bg-white/70"
                           }`}
                         >
-                          {sub.name}
-                        </Link>
-                      ))}
-                    </div>
+                          {thumb ? (
+                            <img
+                              src={thumb}
+                              alt=""
+                              className="h-9 w-9 rounded-full object-cover ring-1 ring-[#E6DFD6]"
+                            />
+                          ) : (
+                            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white ring-1 ring-[#E6DFD6]">
+                              <Icon size={16} strokeWidth={1.6} className="text-[#3F3832]" />
+                            </span>
+                          )}
+                          <span className="flex-1 text-[13px] font-medium leading-snug">
+                            {category.name}
+                          </span>
+                          <ChevronRight
+                            size={14}
+                            className={selected ? "text-[#7A3030]" : "text-[#C4BBB1]"}
+                          />
+                        </button>
+                      );
+                    })}
                   </div>
-                )}
-              </li>
-            );
-          })}
+                </aside>
+
+                <div className="flex flex-col p-5">
+                  {activeMega ? (
+                    <>
+                      <div className="mb-4 flex items-center justify-between gap-3">
+                        <h3 className="text-base font-semibold text-[#1C1917]">
+                          {activeMega.name}
+                        </h3>
+                        <Link
+                          to={shopPath(activeMega.name)}
+                          className="inline-flex items-center gap-1 text-sm font-medium text-[#7A3030] hover:text-[#5C2424]"
+                        >
+                          View all
+                          <ChevronRight size={14} />
+                        </Link>
+                      </div>
+
+                      {activeSubs.length ? (
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                          {activeSubs.map((sub) => {
+                            const SubIcon = pickCategoryIcon(sub.name);
+                            return (
+                              <Link
+                                key={sub.name}
+                                to={shopPath(activeMega.name, sub.name)}
+                                className={`group rounded-xl border p-3 transition-colors ${
+                                  activeCategory === activeMega.name &&
+                                  activeSub === sub.name
+                                    ? "border-[#7A3030]/35 bg-[#F4F0EA]"
+                                    : "border-[#E6DFD6] hover:border-[#1C1917]/20 hover:bg-[#F8F5F1]"
+                                }`}
+                              >
+                                <span className="mb-2 flex h-16 items-center justify-center rounded-lg bg-[#F4F0EA]">
+                                  <SubIcon
+                                    size={22}
+                                    strokeWidth={1.4}
+                                    className="text-[#8A8178] transition-colors group-hover:text-[#7A3030]"
+                                  />
+                                </span>
+                                <span className="block text-[13px] font-medium text-[#1C1917]">
+                                  {sub.name}
+                                </span>
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="flex flex-1 flex-col items-start justify-center gap-3">
+                          <p className="text-sm text-[#8A8178]">
+                            No subcategories yet — browse everything in{" "}
+                            {activeMega.name}.
+                          </p>
+                          <Link
+                            to={shopPath(activeMega.name)}
+                            className="rounded-full bg-[#1C1917] px-4 py-2 text-xs tracking-[0.14em] text-[#F4F0EA]"
+                          >
+                            SHOP {activeMega.name.toUpperCase()}
+                          </Link>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-sm text-[#8A8178]">No categories available.</p>
+                  )}
+
+                  <div className="mt-auto border-t border-[#E6DFD6] pt-4">
+                    <Link
+                      to="/categories"
+                      className="inline-flex items-center gap-1 text-sm font-medium text-[#7A3030] hover:text-[#5C2424]"
+                    >
+                      View all categories
+                      <ChevronRight size={14} />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <NavLink to="/collection" className="group flex flex-col items-center gap-1">
             {({ isActive }) => {
@@ -183,6 +325,15 @@ const Navbar = () => {
                 </>
               );
             }}
+          </NavLink>
+
+          <NavLink to="/new-arrivals" className="group flex flex-col items-center gap-1">
+            {({ isActive }) => (
+              <>
+                <p className={navText(isActive)}>NEW ARRIVALS</p>
+                <hr className={navRule(isActive)} />
+              </>
+            )}
           </NavLink>
 
           {pageLinks.map(({ to, label }) => (
@@ -284,6 +435,17 @@ const Navbar = () => {
 
       <div className="-mx-1 flex gap-2 overflow-x-auto pb-2 lg:hidden">
         <Link
+          to="/categories"
+          className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs ${
+            pathname === "/categories"
+              ? "bg-[#1C1917] text-white"
+              : "bg-[#EDE7DF] text-[#1C1917]"
+          }`}
+        >
+          <LayoutGrid size={12} strokeWidth={1.75} />
+          Categories
+        </Link>
+        <Link
           to="/collection"
           className={`shrink-0 rounded-full px-3 py-1.5 text-xs ${
             pathname === "/collection" && !activeCategory
@@ -293,7 +455,7 @@ const Navbar = () => {
         >
           All
         </Link>
-        {categories.map((category) => (
+        {categories.slice(0, 6).map((category) => (
           <Link
             key={category.name}
             to={shopPath(category.name)}
@@ -324,7 +486,11 @@ const Navbar = () => {
           >
             <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-5 py-4 pt-[max(1rem,env(safe-area-inset-top))]">
               <Link to="/" className="inline-flex bg-white">
-                <img src={assets.logo} className="h-14 w-14 mix-blend-multiply object-contain" alt="Charu Garments" />
+                <img
+                  src={assets.logo}
+                  className="h-14 w-14 mix-blend-multiply object-contain"
+                  alt="Charu Garments"
+                />
               </Link>
               <button
                 onClick={() => setVisible(false)}
@@ -344,7 +510,9 @@ const Navbar = () => {
                   to="/"
                   className={({ isActive }) =>
                     `flex items-center justify-between rounded-lg px-3 py-3 text-sm transition-colors duration-150 ${
-                      isActive ? "bg-gray-50 font-medium text-black" : "text-gray-500 hover:bg-gray-50 hover:text-black"
+                      isActive
+                        ? "bg-gray-50 font-medium text-black"
+                        : "text-gray-500 hover:bg-gray-50 hover:text-black"
                     }`
                   }
                 >
@@ -360,53 +528,98 @@ const Navbar = () => {
                 >
                   All collections
                 </Link>
+                <NavLink
+                  to="/new-arrivals"
+                  className={({ isActive }) =>
+                    `flex items-center justify-between rounded-lg px-3 py-3 text-sm transition-colors duration-150 ${
+                      isActive
+                        ? "bg-gray-50 font-medium text-black"
+                        : "text-gray-500 hover:bg-gray-50 hover:text-black"
+                    }`
+                  }
+                >
+                  New Arrivals
+                </NavLink>
 
-                {categories.map((category) => {
-                  const open = openShop === category.name;
-                  const selected = activeCategory === category.name;
-                  const subs = category.subCategories || [];
-                  return (
-                    <div key={category._id || category.name} className="rounded-lg">
-                      <div className="flex items-center">
-                        <Link
-                          to={shopPath(category.name)}
-                          className={`flex-1 rounded-lg px-3 py-3 text-sm ${
-                            selected ? "font-medium text-black" : "text-gray-600"
-                          }`}
-                        >
-                          {category.name}
-                        </Link>
-                        {subs.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => setOpenShop(open ? "" : category.name)}
-                            className="mr-1 flex h-9 w-9 items-center justify-center text-gray-400"
-                            aria-label={`${open ? "Hide" : "Show"} ${category.name} types`}
-                          >
-                            <ChevronDown
-                              size={16}
-                              className={`transition-transform ${open ? "rotate-180" : ""}`}
-                            />
-                          </button>
-                        )}
-                      </div>
-                      {open &&
-                        subs.map((sub) => (
-                          <Link
-                            key={sub.name}
-                            to={shopPath(category.name, sub.name)}
-                            className={`ml-3 block rounded-lg px-3 py-2.5 text-sm ${
-                              selected && activeSub === sub.name
-                                ? "bg-[#F4F0EA] font-medium text-[#1C1917]"
-                                : "text-gray-500 hover:bg-gray-50 hover:text-black"
-                            }`}
-                          >
-                            {sub.name}
-                          </Link>
-                        ))}
+                <div className="mt-2 rounded-xl border border-[#E6DFD6] bg-[#F8F5F1] p-2">
+                  <button
+                    type="button"
+                    onClick={() => setOpenShop(openShop === "__cats" ? "" : "__cats")}
+                    className="flex w-full items-center justify-between rounded-lg px-2 py-2.5 text-sm font-medium text-[#1C1917]"
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <LayoutGrid size={15} strokeWidth={1.75} />
+                      Categories
+                    </span>
+                    <ChevronDown
+                      size={16}
+                      className={`text-[#8A8178] transition-transform ${
+                        openShop === "__cats" ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {openShop === "__cats" && (
+                    <div className="mt-1 space-y-1">
+                      {categories.map((category) => {
+                        const selected = activeCategory === category.name;
+                        const subs = category.subCategories || [];
+                        const expanded = hoverCategory === category.name;
+                        return (
+                          <div key={category._id || category.name}>
+                            <div className="flex items-center rounded-lg bg-white">
+                              <Link
+                                to={shopPath(category.name)}
+                                className={`flex-1 px-3 py-2.5 text-sm ${
+                                  selected ? "font-medium text-black" : "text-gray-600"
+                                }`}
+                              >
+                                {category.name}
+                              </Link>
+                              {subs.length > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setHoverCategory(expanded ? "" : category.name)
+                                  }
+                                  className="mr-1 flex h-9 w-9 items-center justify-center text-gray-400"
+                                  aria-label={`${expanded ? "Hide" : "Show"} ${category.name} types`}
+                                >
+                                  <ChevronRight
+                                    size={16}
+                                    className={`transition-transform ${
+                                      expanded ? "rotate-90" : ""
+                                    }`}
+                                  />
+                                </button>
+                              )}
+                            </div>
+                            {expanded &&
+                              subs.map((sub) => (
+                                <Link
+                                  key={sub.name}
+                                  to={shopPath(category.name, sub.name)}
+                                  className={`ml-3 block rounded-lg px-3 py-2.5 text-sm ${
+                                    selected && activeSub === sub.name
+                                      ? "bg-[#F4F0EA] font-medium text-[#1C1917]"
+                                      : "text-gray-500 hover:bg-white hover:text-black"
+                                  }`}
+                                >
+                                  {sub.name}
+                                </Link>
+                              ))}
+                          </div>
+                        );
+                      })}
+                      <Link
+                        to="/categories"
+                        className="block px-3 py-2.5 text-sm font-medium text-[#7A3030]"
+                      >
+                        View all categories →
+                      </Link>
                     </div>
-                  );
-                })}
+                  )}
+                </div>
 
                 <p className="px-3 pb-1 pt-4 text-[10px] uppercase tracking-widest text-gray-400">
                   Company
@@ -417,7 +630,9 @@ const Navbar = () => {
                     to={to}
                     className={({ isActive }) =>
                       `flex items-center justify-between rounded-lg px-3 py-3 text-sm transition-colors duration-150 ${
-                        isActive ? "bg-gray-50 font-medium text-black" : "text-gray-500 hover:bg-gray-50 hover:text-black"
+                        isActive
+                          ? "bg-gray-50 font-medium text-black"
+                          : "text-gray-500 hover:bg-gray-50 hover:text-black"
                       }`
                     }
                   >

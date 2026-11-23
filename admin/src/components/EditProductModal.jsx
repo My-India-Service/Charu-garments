@@ -196,6 +196,7 @@ const EditProductModal = ({ product, token, onClose, fetchList }) => {
     subCategory: product.subCategory || "Topwear",
     sizes: product.sizes || [],
     bestseller: product.bestseller || false,
+    newArrival: product.newArrival || false,
     image1: null,
     image2: null,
     image3: null,
@@ -392,6 +393,7 @@ const EditProductModal = ({ product, token, onClose, fetchList }) => {
         JSON.stringify(buildStock(colors, editForm.sizes, stockQty, sizeDeal)),
       );
       formData.append("bestseller", editForm.bestseller);
+      formData.append("newArrival", editForm.newArrival);
       formData.append("removeImages", JSON.stringify(editForm.removeImages));
 
       if (editForm.image1) formData.append("image1", editForm.image1);
@@ -726,6 +728,28 @@ const EditProductModal = ({ product, token, onClose, fetchList }) => {
                 type="checkbox"
                 checked={editForm.bestseller}
                 onChange={(e) => setField("bestseller")(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-checked:bg-blue-600 rounded-full transition-all" />
+              <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-all peer-checked:translate-x-5" />
+            </div>
+          </label>
+
+          {/* New Arrival */}
+          <label className="flex items-center justify-between rounded-2xl border border-gray-200 px-4 sm:px-5 py-4 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors select-none">
+            <div>
+              <p className="text-[15px] font-medium text-gray-800">
+                New Arrival
+              </p>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Feature in new arrivals
+              </p>
+            </div>
+            <div className="relative flex-shrink-0 ml-4">
+              <input
+                type="checkbox"
+                checked={editForm.newArrival}
+                onChange={(e) => setField("newArrival")(e.target.checked)}
                 className="sr-only peer"
               />
               <div className="w-11 h-6 bg-gray-200 peer-checked:bg-blue-600 rounded-full transition-all" />

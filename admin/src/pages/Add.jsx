@@ -87,6 +87,7 @@ const Add = ({ token }) => {
   const [subCategory, setSubCategory] = useState("");
   const [categories, setCategories] = useState([]);
   const [bestseller, setBestseller] = useState(false);
+  const [newArrival, setNewArrival] = useState(false);
   const [sizes, setSizes] = useState([]);
   const [sizeType, setSizeType] = useState("apparel");
   const [colors, setColors] = useState([]);
@@ -233,6 +234,7 @@ const Add = ({ token }) => {
       formData.append("category", category);
       formData.append("subCategory", subCategory);
       formData.append("bestseller", bestseller);
+      formData.append("newArrival", newArrival);
       formData.append("sizes", JSON.stringify(sizes));
       formData.append("colors", JSON.stringify(colors));
       formData.append("stock", JSON.stringify(buildStock(colors, sizes, stockQty, sizeDeal)));
@@ -258,6 +260,7 @@ const Add = ({ token }) => {
         setCategory(activeCategories[0]?.name || "");
         setSubCategory(activeSubs[0]?.name || "");
         setBestseller(false);
+        setNewArrival(false);
         setSizes([]);
         setColors([]);
         setStockQty({});
@@ -573,32 +576,59 @@ const Add = ({ token }) => {
           />
         </div>
 
-        {/* Bestseller + Submit */}
+        {/* Bestseller / New Arrival + Submit */}
         <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <label
-            htmlFor="bestseller"
-            className="flex items-center gap-3 cursor-pointer group"
-          >
-            <div className="relative">
-              <input
-                type="checkbox"
-                id="bestseller"
-                className="sr-only peer"
-                checked={bestseller}
-                onChange={() => setBestseller((prev) => !prev)}
-              />
-              <div className="w-10 h-6 bg-gray-200 rounded-full peer peer-checked:bg-gray-900 transition-colors duration-200" />
-              <div className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 peer-checked:translate-x-4" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-700">
-                Mark as Bestseller
-              </p>
-              <p className="text-xs text-gray-400">
-                Featured in the bestsellers section
-              </p>
-            </div>
-          </label>
+          <div className="flex flex-col sm:flex-row gap-4 sm:gap-8">
+            <label
+              htmlFor="bestseller"
+              className="flex items-center gap-3 cursor-pointer group"
+            >
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  id="bestseller"
+                  className="sr-only peer"
+                  checked={bestseller}
+                  onChange={() => setBestseller((prev) => !prev)}
+                />
+                <div className="w-10 h-6 bg-gray-200 rounded-full peer peer-checked:bg-gray-900 transition-colors duration-200" />
+                <div className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 peer-checked:translate-x-4" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-700">
+                  Mark as Bestseller
+                </p>
+                <p className="text-xs text-gray-400">
+                  Featured in the bestsellers section
+                </p>
+              </div>
+            </label>
+
+            <label
+              htmlFor="newArrival"
+              className="flex items-center gap-3 cursor-pointer group"
+            >
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  id="newArrival"
+                  className="sr-only peer"
+                  checked={newArrival}
+                  onChange={() => setNewArrival((prev) => !prev)}
+                />
+                <div className="w-10 h-6 bg-gray-200 rounded-full peer peer-checked:bg-gray-900 transition-colors duration-200" />
+                <div className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 peer-checked:translate-x-4" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-700">
+                  Mark as New Arrival
+                </p>
+                <p className="text-xs text-gray-400">
+                  Featured in the new arrivals section
+                </p>
+              </div>
+            </label>
+          </div>
 
           <button
             type="submit"

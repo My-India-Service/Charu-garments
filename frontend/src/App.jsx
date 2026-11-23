@@ -3,6 +3,8 @@ import { Routes, Route, useLocation } from "react-router-dom";
 
 import Home from "./pages/Home";
 import Collection from "./pages/Collection";
+import Categories from "./pages/Categories";
+import NewArrivals from "./pages/NewArrivals";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Feedback from "./pages/Feedback";
@@ -61,6 +63,8 @@ const App = () => {
             <Route path="/profile" element={<Profile />} />
             <Route path="/wallet" element={<WalletPage />} />
             <Route path="/collection" element={<Collection />} />
+            <Route path="/categories" element={<Categories />} />
+            <Route path="/new-arrivals" element={<NewArrivals />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/feedback" element={<Feedback />} />

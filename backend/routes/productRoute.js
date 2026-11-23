@@ -4,6 +4,7 @@ import {
   adminListProducts,
   setProductActive,
   setBestseller,
+  setNewArrival,
   addProduct,
   removeProduct,
   singleProduct,
@@ -34,6 +35,7 @@ productRouter.get("/list", listProducts);
 productRouter.get("/admin-list", adminAuth, adminListProducts);
 productRouter.post("/status", adminAuth, setProductActive);
 productRouter.post("/bestseller", adminAuth, setBestseller);
+productRouter.post("/new-arrival", adminAuth, setNewArrival);
 
 productRouter.post(
   "/update",

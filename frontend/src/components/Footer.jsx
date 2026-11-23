@@ -39,6 +39,8 @@ const Footer = () => {
               { label: "Home", to: "/" },
               { label: "About Us", to: "/about" },
               { label: "Collection", to: "/collection" },
+              { label: "Categories", to: "/categories" },
+              { label: "New Arrivals", to: "/new-arrivals" },
               { label: "Contact", to: "/contact" },
               { label: "Feedback", to: "/feedback" },
               { label: "Become a seller", to: "/sell" },

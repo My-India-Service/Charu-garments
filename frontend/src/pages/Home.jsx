@@ -2,11 +2,11 @@ import React from "react";
 import Hero from "../components/Hero";
 import OfferBanners from "../components/OfferBanners";
 import { CategoryBanners, PromoSlider } from "../components/HomeBanners";
-import LatestCollection from "../components/LatestCollection";
+import CategoryGrid from "../components/CategoryGrid";
+import NewArrival from "../components/NewArrival";
 import BestSeller from "../components/BestSeller";
 import OurPolicy from "../components/OurPolicy";
 import NewsletterBox from "../components/NewsletterBox";
-import Footer from "../components/Footer";
 
 const Home = () => {
   return (
@@ -14,12 +14,12 @@ const Home = () => {
       <PromoSlider />
       <OfferBanners />
       <Hero />
+      <CategoryGrid limit={12} />
       <CategoryBanners />
-      <LatestCollection />
+      <NewArrival />
       <BestSeller />
       <OurPolicy />
       <NewsletterBox />
-
     </div>
   );
 };
