@@ -3,6 +3,7 @@ import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
+import mongoose from "mongoose";
 import connectDB from "./config/mongodb.js";
 import connectCloudinary from "./config/cloudinary.js";
 import { syncStoredImages } from "./utils/syncCloudinaryImages.js";
@@ -35,20 +36,18 @@ const app = express();
 const port = process.env.PORT || 4000;
 const frontendDist = path.join(__dirname, "../frontend/dist");
 const adminDist = path.join(__dirname, "../admin/dist");
+const dbStateName = ["disconnected", "connected", "connecting", "disconnecting"];
 
 app.use(express.json());
 app.use(cors());
 connectCloudinary();
 
-await connectDB();
-setTimeout(() => {
-  syncStoredImages().catch((error) => {
-    console.error("Cloudinary image sync failed:", error.message);
-  });
-}, 15_000);
-
 app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", message: "Charu Garments API is running" });
+  res.json({
+    status: "ok",
+    message: "Charu Garments API is running",
+    db: dbStateName[mongoose.connection.readyState] || "unknown",
+  });
 });
 
 app.get("/", (req, res, next) => {
@@ -96,7 +95,19 @@ app.get(/^(?!\/api(?:\/|$)|\/admin(?:\/|$)).*/, (req, res, next) => {
 
 app.listen(port, () => {
   console.log("Server started on PORT : " + port);
-  setTimeout(() => {
-    warmAiModels().catch(() => {});
-  }, 45_000);
 });
+
+connectDB()
+  .then(() => {
+    setTimeout(() => {
+      syncStoredImages().catch((error) => {
+        console.error("Cloudinary image sync failed:", error.message);
+      });
+    }, 15_000);
+    setTimeout(() => {
+      warmAiModels().catch(() => {});
+    }, 45_000);
+  })
+  .catch((error) => {
+    console.error("MongoDB connection failed:", error.message);
+  });
