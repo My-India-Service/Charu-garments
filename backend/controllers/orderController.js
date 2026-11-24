@@ -38,13 +38,22 @@ import { applyOffers } from "../utils/offer.js";
 // Global variables
 const currency = "inr";
 
-// Gateway initialize
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const getStripe = () => {
+  const key = String(process.env.STRIPE_SECRET_KEY || "").trim();
+  if (!key || key.startsWith("YOUR_")) {
+    throw new Error("Stripe is not configured (STRIPE_SECRET_KEY)");
+  }
+  return new Stripe(key);
+};
 
-const razorpayInstance = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+const getRazorpay = () => {
+  const key_id = String(process.env.RAZORPAY_KEY_ID || "").trim();
+  const key_secret = String(process.env.RAZORPAY_KEY_SECRET || "").trim();
+  if (!key_id || !key_secret || key_id.startsWith("YOUR_") || key_secret.startsWith("YOUR_")) {
+    throw new Error("Razorpay is not configured (RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET)");
+  }
+  return new Razorpay({ key_id, key_secret });
+};
 
 // Generate 6-digit OTP
 const generateOtp = () => {
@@ -313,7 +322,7 @@ const placeOrderStripe = async (req, res) => {
 
     let session;
     try {
-      session = await stripe.checkout.sessions.create({
+      session = await getStripe().checkout.sessions.create({
         success_url: `${origin}/verify?success=true&orderId=${newOrder._id}`,
         cancel_url: `${origin}/verify?success=false&orderId=${newOrder._id}`,
         line_items,
@@ -434,7 +443,7 @@ const placeOrderRazorpay = async (req, res) => {
 
     let order;
     try {
-      order = await razorpayInstance.orders.create(options);
+      order = await getRazorpay().orders.create(options);
     } catch (gatewayError) {
       await releaseHeldOrder(await orderModel.findById(newOrder._id));
       throw gatewayError;
@@ -466,7 +475,7 @@ const verifyRazorpay = async (req, res) => {
         .json({ success: false, message: "Invalid request" });
     }
 
-    const orderInfo = await razorpayInstance.orders.fetch(razorpay_order_id);
+    const orderInfo = await getRazorpay().orders.fetch(razorpay_order_id);
 
     if (orderInfo.status === "paid") {
       const paidOrder = await orderModel.findByIdAndUpdate(
