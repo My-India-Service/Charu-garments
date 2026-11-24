@@ -1,10 +1,35 @@
+# Fix 503 — Stripe crash + pull latest (run on SpidyHost Terminal NOW)
+
 source ~/nodevenv/charustore.in/20/bin/activate
 cd ~/charustore.in
-
-# first time (empty folder):
-git clone -b live_spidy https://github.com/My-India-Service/Charu-garments.git .
-
-# or if already cloned:
-git fetch origin
-git checkout live_spidy
 git pull origin live_spidy
+# cPanel → Setup Node.js App → Application startup file = app.cjs → Save
+# then Restart (or:)
+touch tmp/restart.txt
+
+# Verify:
+# https://charustore.in/api/health
+# https://charustore.in/
+# https://charustore.in/admin/
+
+# If still 503: tail -n 40 stderr.log
+
+
+# --- after code updates ---
+source ~/nodevenv/charustore.in/20/bin/activate
+cd ~/charustore.in
+git pull origin live_spidy
+ls frontend/dist/index.html admin/dist/index.html
+# if package.json deps changed: npm install
+touch tmp/restart.txt
+
+
+# --- first time (folder already has cPanel files) ---
+source ~/nodevenv/charustore.in/20/bin/activate
+cd ~/charustore.in
+git init
+git remote add origin https://github.com/My-India-Service/Charu-garments.git
+git fetch origin live_spidy
+git checkout -f -B live_spidy origin/live_spidy
+npm install
+touch tmp/restart.txt
