@@ -1,8 +1,8 @@
 # Dependencies
 node_modules/
 
-# Production
-dist/
+# Production build is committed for SpidyHost (server cannot run Vite)
+# dist/
 build/
 
 # Environment Variables
