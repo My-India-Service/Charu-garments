@@ -1,6 +1,8 @@
 import express from "express";
 import cors from "cors";
-import "dotenv/config";
+import path from "path";
+import { fileURLToPath } from "url";
+import dotenv from "dotenv";
 import connectDB from "./config/mongodb.js";
 import connectCloudinary from "./config/cloudinary.js";
 import { syncStoredImages } from "./utils/syncCloudinaryImages.js";
@@ -23,11 +25,17 @@ import aiRouter from "./routes/aiRoute.js";
 import { robots, sitemap } from "./controllers/seoController.js";
 import { warmAiModels } from "./utils/huggingface.js";
 
-// App Config
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.join(__dirname, ".env") });
+dotenv.config({ path: path.join(__dirname, "../.env") });
+
 const app = express();
 const port = process.env.PORT || 4000;
+const frontendDist = path.join(__dirname, "../frontend/dist");
+const adminDist = path.join(__dirname, "../admin/dist");
 
-// Middlewares
 app.use(express.json());
 app.use(cors());
 connectCloudinary();
@@ -39,13 +47,16 @@ setTimeout(() => {
   });
 }, 15_000);
 
-// API Endpoints
-app.get("/", (req, res) => {
+app.get("/api/health", (_req, res) => {
+  res.json({ status: "ok", message: "Charu Garments API is running" });
+});
+
+app.get("/", (req, res, next) => {
+  if (req.accepts("html")) return next();
   res.send("API Working");
 });
 
 app.use("/api/user", userRouter);
-app.use("/api/product", productRouter);
 app.use("/api/product", productRouter);
 app.use("/api/cart", cartRouter);
 app.use("/api/order", orderRouter);
@@ -64,9 +75,27 @@ app.use("/api/ai", aiRouter);
 app.get("/robots.txt", robots);
 app.get("/sitemap.xml", sitemap);
 
+app.use(
+  "/admin",
+  express.static(adminDist, { index: false, redirect: false }),
+);
+app.get(/^\/admin(?:\/.*)?$/, (req, res, next) => {
+  if (path.extname(req.path)) return next();
+  res.sendFile(path.join(adminDist, "index.html"), (err) => {
+    if (err) next();
+  });
+});
+
+app.use(express.static(frontendDist, { index: false }));
+app.get(/^(?!\/api(?:\/|$)|\/admin(?:\/|$)).*/, (req, res, next) => {
+  if (req.method !== "GET" || path.extname(req.path)) return next();
+  res.sendFile(path.join(frontendDist, "index.html"), (err) => {
+    if (err) next();
+  });
+});
+
 app.listen(port, () => {
   console.log("Server started on PORT : " + port);
-  // Delay AI warm-up so product API stays fast on boot
   setTimeout(() => {
     warmAiModels().catch(() => {});
   }, 45_000);

@@ -1,3 +1,7 @@
 node_modules
-
 *.env
+!.env.example
+
+# Keep production SPA builds tracked for SpidyHost (server cannot run Vite)
+!frontend/dist/
+!admin/dist/

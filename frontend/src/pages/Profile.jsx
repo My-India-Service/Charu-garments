@@ -20,7 +20,7 @@ import axios from "axios";
 import ReferralCard from "../components/ReferralCard";
 
 const backendUrl =
-  import.meta.env.VITE_BACKEND_URL || "https://charu-garments.onrender.com";
+  import.meta.env.VITE_BACKEND_URL || "https://charustore.in";
 
 const Field = ({
   label,

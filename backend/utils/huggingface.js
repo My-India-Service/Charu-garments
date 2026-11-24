@@ -1,23 +1,38 @@
-import { pipeline, env } from "@xenova/transformers";
-
-env.allowLocalModels = false;
-env.useBrowserCache = false;
-try {
-  env.backends.onnx.wasm.numThreads = 1;
-} catch {
-  // ignore backend tuning failures
-}
-
 const HF_TOKEN = () => String(process.env.HF_TOKEN || "").trim();
 const CHAT_MODEL = () =>
   process.env.HF_CHAT_MODEL || "openai/gpt-oss-20b:cheapest";
 
+let pipeline;
 let embedder;
 let sentiment;
 let writer;
 let localDisabled = false;
+let transformersLoaded = false;
 let lastProviderNote = "";
 const productEmbedCache = new Map();
+
+const ensureTransformers = async () => {
+  if (transformersLoaded) return;
+  if (localDisabled) throw new Error("Local HF models unavailable on this machine");
+  try {
+    const mod = await import("@xenova/transformers");
+    pipeline = mod.pipeline;
+    const { env } = mod;
+    env.allowLocalModels = false;
+    env.useBrowserCache = false;
+    try {
+      env.backends.onnx.wasm.numThreads = 1;
+    } catch {
+      // ignore backend tuning failures
+    }
+    transformersLoaded = true;
+  } catch (error) {
+    localDisabled = true;
+    throw new Error(
+      error?.message || "Local HF models unavailable on this machine",
+    );
+  }
+};
 
 const ensureTokenHeader = () => {
   const token = HF_TOKEN();
@@ -63,7 +78,7 @@ const keywordScore = (query, blob) => {
 };
 
 const getEmbedder = async () => {
-  if (localDisabled) throw new Error("Local HF models unavailable on this machine");
+  await ensureTransformers();
   if (!embedder) {
     embedder = await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2");
   }
@@ -71,7 +86,7 @@ const getEmbedder = async () => {
 };
 
 const getSentiment = async () => {
-  if (localDisabled) throw new Error("Local HF models unavailable on this machine");
+  await ensureTransformers();
   if (!sentiment) {
     sentiment = await pipeline(
       "sentiment-analysis",
@@ -82,7 +97,7 @@ const getSentiment = async () => {
 };
 
 const getWriter = async () => {
-  if (localDisabled) throw new Error("Local HF models unavailable on this machine");
+  await ensureTransformers();
   if (!writer) {
     writer = await pipeline("text2text-generation", "Xenova/LaMini-Flan-T5-248M");
   }

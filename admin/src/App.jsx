@@ -21,7 +21,7 @@ import Feedback from "./pages/Feedback";
 import Sellers from "./pages/Sellers";
 
 export const backendUrl =
-  import.meta.env.VITE_BACKEND_URL || "https://charu-garments.onrender.com";
+  import.meta.env.VITE_BACKEND_URL || "https://charustore.in";
 export const currency = "₹";
 
 const App = () => {

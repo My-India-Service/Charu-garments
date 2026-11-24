@@ -8,7 +8,7 @@ const esc = (value) =>
     .replace(/"/g, "&quot;");
 
 const storeUrl = () =>
-  String(process.env.FRONTEND_URL || "https://charu-garments-store.onrender.com").replace(
+  String(process.env.FRONTEND_URL || "https://charustore.in").replace(
     /\/$/,
     "",
   );

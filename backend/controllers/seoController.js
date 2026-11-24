@@ -1,7 +1,7 @@
 import productModel from "../models/productModel.js";
 
 const storeUrl = () =>
-  String(process.env.FRONTEND_URL || "https://charu-garments-store.onrender.com").replace(/\/$/, "");
+  String(process.env.FRONTEND_URL || "https://charustore.in").replace(/\/$/, "");
 
 const escapeXml = (value) =>
   String(value)

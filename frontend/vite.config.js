@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
 const backendUrl =
-  process.env.VITE_BACKEND_URL || "https://charu-garments.onrender.com";
+  process.env.VITE_BACKEND_URL || "https://charustore.in";
 
 function seoFiles() {
   return {

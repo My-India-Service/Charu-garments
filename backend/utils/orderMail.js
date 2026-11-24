@@ -17,7 +17,7 @@ const inr = (value) =>
 const shortId = (id) => String(id || "").slice(-8).toUpperCase();
 
 const orderLink = (order) => {
-  const base = String(process.env.FRONTEND_URL || "https://charu-garments-store.onrender.com").replace(
+  const base = String(process.env.FRONTEND_URL || "https://charustore.in").replace(
     /\/$/,
     "",
   );
