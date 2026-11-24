@@ -1,0 +1,10 @@
+source ~/nodevenv/charustore.in/20/bin/activate
+cd ~/charustore.in
+
+# first time (empty folder):
+git clone -b live_spidy https://github.com/My-India-Service/Charu-garments.git .
+
+# or if already cloned:
+git fetch origin
+git checkout live_spidy
+git pull origin live_spidy
