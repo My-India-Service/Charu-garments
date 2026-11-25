@@ -1,5 +1,4 @@
 import React from "react";
-import Hero from "../components/Hero";
 import OfferBanners from "../components/OfferBanners";
 import { CategoryBanners, PromoSlider } from "../components/HomeBanners";
 import CategoryGrid from "../components/CategoryGrid";
@@ -13,7 +12,6 @@ const Home = () => {
     <div>
       <PromoSlider />
       <OfferBanners />
-      <Hero />
       <CategoryGrid limit={12} />
       <CategoryBanners />
       <NewArrival />

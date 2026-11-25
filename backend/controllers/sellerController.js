@@ -53,6 +53,39 @@ const sellerMe = async (req, res) => {
   }
 };
 
+const updateShop = async (req, res) => {
+  try {
+    const user = req.seller;
+    const shopName = String(req.body.shopName || "").trim();
+    const shopPhone = String(req.body.shopPhone || "").replace(/\D/g, "");
+    if (shopName.length < 2) {
+      return res.json({ success: false, message: "Enter your shop name" });
+    }
+    if (shopPhone.length !== 10) {
+      return res.json({ success: false, message: "Enter a valid 10-digit phone number" });
+    }
+
+    user.shopName = shopName;
+    user.shopPhone = shopPhone;
+    await user.save();
+
+    await productModel.updateMany(
+      { sellerId: String(user._id) },
+      { sellerName: shopName },
+    );
+    clearStoreProductCache();
+
+    res.json({
+      success: true,
+      message: "Shop details updated",
+      shop: shopView(user),
+    });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
 const sellerProducts = async (req, res) => {
   try {
     const products = await productModel
@@ -60,6 +93,56 @@ const sellerProducts = async (req, res) => {
       .sort({ date: -1 });
     res.json({ success: true, products });
   } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+};
+
+const ownSellerProduct = async (req, productId) => {
+  const product = await productModel.findById(productId);
+  if (!product) return { error: "Product not found" };
+  if (String(product.sellerId || "") !== String(req.seller._id)) {
+    return { error: "You can only manage your own products" };
+  }
+  return { product };
+};
+
+const removeSellerProduct = async (req, res) => {
+  try {
+    const { product, error } = await ownSellerProduct(req, req.body.id);
+    if (error) return res.json({ success: false, message: error });
+
+    await productModel.findByIdAndDelete(product._id);
+    clearStoreProductCache();
+    res.json({ success: true, message: "Product removed from your shop" });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
+const setSellerProductActive = async (req, res) => {
+  try {
+    const { product, error } = await ownSellerProduct(req, req.body.id);
+    if (error) return res.json({ success: false, message: error });
+
+    const wantActive = req.body.active === true || req.body.active === "true";
+    if (wantActive && product.listingStatus !== "live") {
+      return res.json({
+        success: false,
+        message: "Only approved live products can be shown again",
+      });
+    }
+
+    product.active = wantActive;
+    await product.save();
+    clearStoreProductCache();
+    res.json({
+      success: true,
+      message: product.active ? "Product is visible in your shop" : "Product hidden from store",
+      product,
+    });
+  } catch (error) {
+    console.log(error);
     res.json({ success: false, message: error.message });
   }
 };
@@ -158,8 +241,11 @@ const reviewSellerProduct = async (req, res) => {
 export {
   applySeller,
   sellerMe,
+  updateShop,
   sellerProducts,
   sellerOrders,
+  removeSellerProduct,
+  setSellerProductActive,
   adminSellers,
   setSellerStatus,
   reviewSellerProduct,

@@ -52,6 +52,26 @@ const Categories = ({ token }) => {
     if (ok) setName("");
   };
 
+  const uploadBanner = async (categoryId, file) => {
+    if (!file) return;
+    try {
+      const body = new FormData();
+      body.append("categoryId", categoryId);
+      body.append("banner", file);
+      const response = await axios.post(backendUrl + "/api/category/banner", body, {
+        headers: { token },
+      });
+      if (response.data.success) {
+        toast.success(response.data.message || "Banner updated");
+        await fetchCategories();
+      } else {
+        toast.error(response.data.message);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Could not upload banner");
+    }
+  };
+
   return (
     <div className="w-full px-2 sm:px-4">
       <div className="mb-5">
@@ -59,7 +79,7 @@ const Categories = ({ token }) => {
           Categories
         </h2>
         <p className="text-xs text-gray-400 mt-0.5">
-          Add categories and subcategories. Disabled ones stay hidden on the store.
+          Add categories, subcategories, and home-page banners. Disabled ones stay hidden on the store.
         </p>
       </div>
 
@@ -120,6 +140,50 @@ const Categories = ({ token }) => {
                   >
                     Delete
                   </button>
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-xl border border-dashed border-gray-200 bg-gray-50 p-3">
+                <p className="text-xs font-medium text-gray-600">Home page banner</p>
+                <p className="mt-0.5 text-[11px] text-gray-400">
+                  Wide image for this category section (recommended ~1200×320 or similar).
+                </p>
+                {category.banner ? (
+                  <img
+                    src={category.banner}
+                    alt={`${category.name} banner`}
+                    className="mt-3 h-24 w-full rounded-lg object-cover"
+                  />
+                ) : (
+                  <p className="mt-3 text-xs text-gray-400">No banner uploaded yet.</p>
+                )}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <label className="cursor-pointer rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white">
+                    {category.banner ? "Change banner" : "Upload banner"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = "";
+                        uploadBanner(category._id, file);
+                      }}
+                    />
+                  </label>
+                  {category.banner ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        post("/api/category/banner-clear", {
+                          categoryId: category._id,
+                        })
+                      }
+                      className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600"
+                    >
+                      Remove banner
+                    </button>
+                  ) : null}
                 </div>
               </div>
 

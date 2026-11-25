@@ -32,15 +32,15 @@ const Footer = () => {
 
         <div>
           <p className="mb-5 text-xs font-semibold uppercase tracking-widest text-[#8A8178]">
-            Company
+            Explore
           </p>
           <ul className="flex flex-col gap-2.5">
             {[
               { label: "Home", to: "/" },
-              { label: "About Us", to: "/about" },
               { label: "Collection", to: "/collection" },
               { label: "Categories", to: "/categories" },
               { label: "New Arrivals", to: "/new-arrivals" },
+              { label: "About Us", to: "/about" },
               { label: "Contact", to: "/contact" },
               { label: "Feedback", to: "/feedback" },
               { label: "Become a seller", to: "/sell" },

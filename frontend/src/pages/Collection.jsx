@@ -232,13 +232,19 @@ const Collection = () => {
 
       {/* ── Product Grid ── */}
       <div className="flex-1 min-w-0">
-        {category.length === 1 && categoryBanners[category[0]] && (
-          <img
-            src={categoryBanners[category[0]]}
-            alt={`${category[0]} wear`}
-            className="mb-6 w-full h-auto rounded-2xl object-cover shadow-[0_12px_30px_rgba(17,17,17,0.08)]"
-          />
-        )}
+        {category.length === 1 &&
+          (() => {
+            const banner =
+              catalog.find((item) => item.name === category[0])?.banner ||
+              categoryBanners[category[0]];
+            return banner ? (
+              <img
+                src={banner}
+                alt={`${category[0]} wear`}
+                className="mb-6 h-auto w-full rounded-2xl object-cover shadow-[0_12px_30px_rgba(17,17,17,0.08)]"
+              />
+            ) : null;
+          })()}
         {/* Header row */}
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <Title

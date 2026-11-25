@@ -19,17 +19,13 @@ const promos = [
   { src: flat30, alt: "Flat 30% off on all products", to: "/collection" },
 ];
 
-const categories = [
-  { name: "Men", src: men, alt: "Men's wear", to: "/collection?category=Men" },
-  { name: "Women", src: women, alt: "Women's wear", to: "/collection?category=Women" },
-  { name: "Kids", src: kids, alt: "Kids wear", to: "/collection?category=Kids" },
-];
-
 export const categoryBanners = {
   Men: men,
   Women: women,
   Kids: kids,
 };
+
+const shopPath = (category) => `/collection?category=${encodeURIComponent(category)}`;
 
 export const PromoSlider = () => {
   const [index, setIndex] = useState(0);
@@ -156,36 +152,64 @@ const CategoryRail = ({ products }) => {
 };
 
 export const CategoryBanners = () => {
-  const { products } = useContext(ShopContext);
+  const { products, categories: catalog, productsLoading } = useContext(ShopContext);
+  const categoryList = catalog?.length
+    ? catalog
+    : ["Men", "Women", "Kids"].map((name) => ({ name }));
+
+  const sections = categoryList
+    .map((item) => {
+      const rows = products.filter((product) => product.category === item.name);
+      const banner = item.banner || categoryBanners[item.name] || "";
+      return { name: item.name, rows, banner };
+    })
+    .filter((item) => item.rows.length > 0 || item.banner);
+
+  if (!productsLoading && !sections.length) return null;
 
   return (
-    <div className="my-14 space-y-14 sm:my-20 sm:space-y-20">
-      <div className="flex flex-col items-center gap-2 text-center">
-        <p className="text-[11px] font-medium uppercase tracking-[0.32em] text-[#8A8178]">
-          Shop by category
-        </p>
-        <h2 className="prata-regular text-3xl text-[#1C1917] sm:text-4xl">Find your look</h2>
-        <span className="mt-1 h-px w-12 bg-[#7A3030]" />
-      </div>
-
-      {categories.map((item) => {
-        const rows = products.filter((product) => product.category === item.name);
-        return (
-          <section key={item.name}>
+    <div className="my-10 space-y-12 sm:my-14 sm:space-y-16">
+      {sections.map((item) => (
+        <section key={item.name}>
+          <div className="mb-3 flex items-end justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[#8A8178]">
+                Shop
+              </p>
+              <h2 className="text-lg font-semibold text-[#1C1917] sm:text-xl">
+                {item.name}
+              </h2>
+            </div>
             <Link
-              to={item.to}
+              to={shopPath(item.name)}
+              className="shrink-0 text-sm font-medium text-[#7A3030] hover:text-[#5C2424]"
+            >
+              View all ›
+            </Link>
+          </div>
+
+          {item.banner ? (
+            <Link
+              to={shopPath(item.name)}
               className="-mx-4 block overflow-hidden sm:-mx-[5vw] md:-mx-[7vw] lg:-mx-[9vw]"
             >
               <img
-                src={item.src}
-                alt={item.alt}
+                src={item.banner}
+                alt={`${item.name} collection`}
                 className="block h-auto w-full"
               />
             </Link>
-            <CategoryRail products={rows} />
-          </section>
-        );
-      })}
+          ) : null}
+
+          <CategoryRail products={item.rows} />
+
+          {!item.rows.length && (
+            <p className="mt-4 text-sm text-[#8A8178]">
+              Products for {item.name} will show here soon.
+            </p>
+          )}
+        </section>
+      ))}
     </div>
   );
 };

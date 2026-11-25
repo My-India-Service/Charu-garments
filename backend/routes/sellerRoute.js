@@ -7,11 +7,14 @@ import { addProduct, updateProduct } from "../controllers/productController.js";
 import {
   adminSellers,
   applySeller,
+  removeSellerProduct,
   reviewSellerProduct,
   sellerMe,
   sellerOrders,
   sellerProducts,
+  setSellerProductActive,
   setSellerStatus,
+  updateShop,
 } from "../controllers/sellerController.js";
 
 const sellerRouter = express.Router();
@@ -24,10 +27,13 @@ const images = upload.fields([
 
 sellerRouter.post("/apply", authUser, applySeller);
 sellerRouter.get("/me", authUser, sellerMe);
+sellerRouter.post("/shop", authUser, approvedSeller, updateShop);
 sellerRouter.get("/products", authUser, approvedSeller, sellerProducts);
 sellerRouter.get("/orders", authUser, approvedSeller, sellerOrders);
 sellerRouter.post("/product/add", authUser, approvedSeller, images, addProduct);
 sellerRouter.post("/product/update", authUser, approvedSeller, images, updateProduct);
+sellerRouter.post("/product/remove", authUser, approvedSeller, removeSellerProduct);
+sellerRouter.post("/product/status", authUser, approvedSeller, setSellerProductActive);
 sellerRouter.get("/admin/list", adminAuth, adminSellers);
 sellerRouter.post("/admin/status", adminAuth, setSellerStatus);
 sellerRouter.post("/admin/product", adminAuth, reviewSellerProduct);

@@ -1,5 +1,6 @@
 import categoryModel from "../models/categoryModel.js";
 import productModel from "../models/productModel.js";
+import { uploadBuffer } from "../utils/cloudinaryUpload.js";
 
 const DEFAULTS = ["Men", "Women", "Kids"].map((name) => ({
   name,
@@ -194,6 +195,44 @@ const removeSubCategory = async (req, res) => {
   }
 };
 
+const setCategoryBanner = async (req, res) => {
+  try {
+    const category = await categoryModel.findById(req.body.categoryId);
+    if (!category) return res.json({ success: false, message: "Category not found" });
+    if (!req.file) {
+      return res.json({ success: false, message: "Upload a banner image" });
+    }
+
+    category.banner = await uploadBuffer(req.file.buffer, "category-banners");
+    await category.save();
+    res.json({
+      success: true,
+      message: "Category banner updated",
+      category,
+    });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
+const clearCategoryBanner = async (req, res) => {
+  try {
+    const category = await categoryModel.findById(req.body.categoryId);
+    if (!category) return res.json({ success: false, message: "Category not found" });
+    category.banner = "";
+    await category.save();
+    res.json({
+      success: true,
+      message: "Category banner removed",
+      category,
+    });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
 export {
   listCategories,
   adminCategories,
@@ -204,4 +243,6 @@ export {
   updateSubSizeType,
   removeCategory,
   removeSubCategory,
+  setCategoryBanner,
+  clearCategoryBanner,
 };

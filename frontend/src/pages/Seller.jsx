@@ -16,17 +16,26 @@ const Seller = () => {
   const { backendUrl, token, currency } = useContext(ShopContext);
   const [shop, setShop] = useState(null);
   const [form, setForm] = useState({ shopName: "", shopPhone: "" });
+  const [shopForm, setShopForm] = useState({ shopName: "", shopPhone: "" });
   const [sending, setSending] = useState(false);
+  const [savingShop, setSavingShop] = useState(false);
   const [tab, setTab] = useState("products");
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [editing, setEditing] = useState(null);
   const [adding, setAdding] = useState(false);
+  const [busyId, setBusyId] = useState("");
 
   const loadShop = async () => {
     const response = await axios.get(backendUrl + "/api/seller/me", { headers: { token } });
-    if (response.data.success) setShop(response.data.shop);
-    else toast.error(response.data.message);
+    if (response.data.success) {
+      const next = response.data.shop;
+      setShop(next);
+      setShopForm({
+        shopName: next.shopName || "",
+        shopPhone: next.shopPhone || "",
+      });
+    } else toast.error(response.data.message);
   };
 
   const loadDesk = async () => {
@@ -66,6 +75,71 @@ const Seller = () => {
       toast.error(error.response?.data?.message || "Could not send the application");
     } finally {
       setSending(false);
+    }
+  };
+
+  const saveShop = async (event) => {
+    event.preventDefault();
+    setSavingShop(true);
+    try {
+      const response = await axios.post(backendUrl + "/api/seller/shop", shopForm, {
+        headers: { token },
+      });
+      if (response.data.success) {
+        toast.success(response.data.message);
+        setShop(response.data.shop);
+        await loadDesk();
+      } else {
+        toast.error(response.data.message);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Could not update shop");
+    } finally {
+      setSavingShop(false);
+    }
+  };
+
+  const removeProduct = async (product) => {
+    if (!window.confirm(`Remove “${product.name}” from your shop?`)) return;
+    setBusyId(product._id);
+    try {
+      const response = await axios.post(
+        backendUrl + "/api/seller/product/remove",
+        { id: product._id },
+        { headers: { token } },
+      );
+      if (response.data.success) {
+        toast.success(response.data.message);
+        if (editing?._id === product._id) setEditing(null);
+        await loadDesk();
+      } else {
+        toast.error(response.data.message);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Could not remove product");
+    } finally {
+      setBusyId("");
+    }
+  };
+
+  const toggleProduct = async (product) => {
+    setBusyId(product._id);
+    try {
+      const response = await axios.post(
+        backendUrl + "/api/seller/product/status",
+        { id: product._id, active: product.active === false },
+        { headers: { token } },
+      );
+      if (response.data.success) {
+        toast.success(response.data.message);
+        await loadDesk();
+      } else {
+        toast.error(response.data.message);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Could not update product");
+    } finally {
+      setBusyId("");
     }
   };
 
@@ -119,7 +193,12 @@ const Seller = () => {
                 inputMode="numeric"
                 maxLength={10}
                 value={form.shopPhone}
-                onChange={(e) => setForm((data) => ({ ...data, shopPhone: e.target.value.replace(/\D/g, "").slice(0, 10) }))}
+                onChange={(e) =>
+                  setForm((data) => ({
+                    ...data,
+                    shopPhone: e.target.value.replace(/\D/g, "").slice(0, 10),
+                  }))
+                }
               />
             </label>
             <button disabled={sending} className="rounded-full bg-[#1C1917] px-5 py-2.5 text-sm text-white disabled:opacity-60">
@@ -134,24 +213,77 @@ const Seller = () => {
   return (
     <div className="py-8">
       <Title text1={shop.shopName} text2="SHOP" />
-      <p className="mt-2 text-sm text-[#8A8178]">Phone {shop.shopPhone}. Orders are packed and shipped by Charu.</p>
-      <div className="mt-6 flex gap-2">
-        {["products", "orders"].map((item) => (
+      <p className="mt-2 text-sm text-[#8A8178]">
+        You can only manage your own shop details and products. Orders are packed and shipped by Charu.
+      </p>
+      <div className="mt-6 flex flex-wrap gap-2">
+        {["products", "orders", "shop"].map((item) => (
           <button
             key={item}
             type="button"
-            onClick={() => { setTab(item); setAdding(false); setEditing(null); }}
-            className={`rounded-full px-4 py-2 text-sm capitalize ${tab === item ? "bg-[#1C1917] text-white" : "bg-white"}`}
+            onClick={() => {
+              setTab(item);
+              setAdding(false);
+              setEditing(null);
+            }}
+            className={`rounded-full px-4 py-2 text-sm capitalize ${
+              tab === item ? "bg-[#1C1917] text-white" : "bg-white"
+            }`}
           >
-            {item}
+            {item === "shop" ? "Shop details" : item}
           </button>
         ))}
       </div>
 
+      {tab === "shop" && (
+        <form onSubmit={saveShop} className="mt-6 max-w-lg space-y-4 rounded-2xl bg-white p-5">
+          <p className="text-sm leading-6 text-[#8A8178]">
+            Update only your store info. Other sellers’ shops stay private.
+          </p>
+          <label className="block text-sm">
+            Shop name
+            <input
+              className="mt-1 w-full rounded-xl border border-[#E6DFD6] px-3 py-2.5"
+              value={shopForm.shopName}
+              onChange={(e) =>
+                setShopForm((data) => ({ ...data, shopName: e.target.value }))
+              }
+              required
+            />
+          </label>
+          <label className="block text-sm">
+            Shop phone
+            <input
+              className="mt-1 w-full rounded-xl border border-[#E6DFD6] px-3 py-2.5"
+              inputMode="numeric"
+              maxLength={10}
+              value={shopForm.shopPhone}
+              onChange={(e) =>
+                setShopForm((data) => ({
+                  ...data,
+                  shopPhone: e.target.value.replace(/\D/g, "").slice(0, 10),
+                }))
+              }
+              required
+            />
+          </label>
+          <button
+            disabled={savingShop}
+            className="rounded-full bg-[#1C1917] px-5 py-2.5 text-sm text-white disabled:opacity-60"
+          >
+            {savingShop ? "Saving..." : "Save shop details"}
+          </button>
+        </form>
+      )}
+
       {tab === "products" && (
         <div className="mt-6 space-y-4">
           {!adding && !editing && (
-            <button type="button" onClick={() => setAdding(true)} className="rounded-full bg-[#7A3030] px-4 py-2 text-sm text-white">
+            <button
+              type="button"
+              onClick={() => setAdding(true)}
+              className="rounded-full bg-[#7A3030] px-4 py-2 text-sm text-white"
+            >
               Add product
             </button>
           )}
@@ -160,25 +292,73 @@ const Seller = () => {
               backendUrl={backendUrl}
               token={token}
               product={editing}
-              onCancel={() => { setAdding(false); setEditing(null); }}
-              onSaved={() => { setAdding(false); setEditing(null); loadDesk(); }}
+              onCancel={() => {
+                setAdding(false);
+                setEditing(null);
+              }}
+              onSaved={() => {
+                setAdding(false);
+                setEditing(null);
+                loadDesk();
+              }}
             />
           )}
           <div className="grid gap-3">
             {products.map((item) => (
               <div key={item._id} className="flex gap-3 rounded-2xl bg-white p-3">
-                <img src={item.image?.[0]} alt="" className="h-20 w-16 rounded-lg object-cover" />
+                <img
+                  src={item.image?.[0]}
+                  alt=""
+                  className="h-20 w-16 rounded-lg object-cover"
+                />
                 <div className="min-w-0 flex-1">
                   <p className="font-medium">{item.name}</p>
-                  <p className="text-sm text-[#7A3030]">{currency}{item.price}</p>
-                  <p className="text-xs text-[#8A8178]">{statusLabel[item.listingStatus] || item.listingStatus}</p>
+                  <p className="text-sm text-[#7A3030]">
+                    {currency}
+                    {item.price}
+                  </p>
+                  <p className="text-xs text-[#8A8178]">
+                    {statusLabel[item.listingStatus] || item.listingStatus}
+                    {item.listingStatus === "live" && item.active === false
+                      ? " · Hidden"
+                      : ""}
+                  </p>
                 </div>
-                <button type="button" onClick={() => { setEditing(item); setAdding(false); }} className="self-start text-sm underline">
-                  Edit
-                </button>
+                <div className="flex flex-col items-end gap-2 self-start">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditing(item);
+                      setAdding(false);
+                    }}
+                    className="text-sm underline"
+                  >
+                    Edit
+                  </button>
+                  {item.listingStatus === "live" && (
+                    <button
+                      type="button"
+                      disabled={busyId === item._id}
+                      onClick={() => toggleProduct(item)}
+                      className="text-sm text-[#8A8178] underline disabled:opacity-50"
+                    >
+                      {item.active === false ? "Show" : "Hide"}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    disabled={busyId === item._id}
+                    onClick={() => removeProduct(item)}
+                    className="text-sm text-[#7A3030] underline disabled:opacity-50"
+                  >
+                    Remove
+                  </button>
+                </div>
               </div>
             ))}
-            {!products.length && <p className="text-sm text-[#8A8178]">No products yet.</p>}
+            {!products.length && (
+              <p className="text-sm text-[#8A8178]">No products yet.</p>
+            )}
           </div>
         </div>
       )}
@@ -191,25 +371,35 @@ const Seller = () => {
             return (
               <article key={order._id} className="rounded-2xl bg-white p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-sm font-medium">{name || "Customer"} · {address.phone}</p>
-                  <p className="text-xs uppercase tracking-wide text-[#7A3030]">{order.status}</p>
+                  <p className="text-sm font-medium">
+                    {name || "Customer"} · {address.phone}
+                  </p>
+                  <p className="text-xs uppercase tracking-wide text-[#7A3030]">
+                    {order.status}
+                  </p>
                 </div>
                 <p className="mt-1 text-sm text-[#8A8178]">
                   {order.fulfillment === "pickup"
                     ? "Pickup from store"
-                    : [address.street, address.city, address.state, address.zipcode].filter(Boolean).join(", ")}
+                    : [address.street, address.city, address.state, address.zipcode]
+                        .filter(Boolean)
+                        .join(", ")}
                 </p>
                 <ul className="mt-3 space-y-2">
                   {order.items.map((item, index) => (
                     <li key={index} className="text-sm">
-                      {item.name} · {item.color ? `${item.color} / ${item.size}` : item.size} · Qty {item.quantity}
+                      {item.name} ·{" "}
+                      {item.color ? `${item.color} / ${item.size}` : item.size} · Qty{" "}
+                      {item.quantity}
                     </li>
                   ))}
                 </ul>
               </article>
             );
           })}
-          {!orders.length && <p className="text-sm text-[#8A8178]">No orders for your products yet.</p>}
+          {!orders.length && (
+            <p className="text-sm text-[#8A8178]">No orders for your products yet.</p>
+          )}
         </div>
       )}
     </div>
