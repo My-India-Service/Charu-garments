@@ -20,8 +20,10 @@ const userSchema = new mongoose.Schema(
     },
     shopName: { type: String, default: "" },
     shopPhone: { type: String, default: "" },
+    lastLoginAt: { type: Number, default: 0 },
+    loginCount: { type: Number, default: 0, min: 0 },
   },
-  { minimize: false },
+  { minimize: false, timestamps: true },
 );
 
 const userModel = mongoose.models.user || mongoose.model("user", userSchema);

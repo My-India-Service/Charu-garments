@@ -37,6 +37,10 @@ const loginUser = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (isMatch) {
+      user.lastLoginAt = Date.now();
+      user.loginCount = Number(user.loginCount || 0) + 1;
+      await user.save();
+
       const token = createToken(user._id);
 
       res.json({

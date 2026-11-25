@@ -19,6 +19,7 @@ import Affiliates from "./pages/Affiliates";
 import Settings from "./pages/Settings";
 import Feedback from "./pages/Feedback";
 import Sellers from "./pages/Sellers";
+import Crm from "./pages/Crm";
 
 export const backendUrl =
   import.meta.env.VITE_BACKEND_URL || "https://charustore.in";
@@ -70,6 +71,7 @@ const App = () => {
                   <Route path="/categories" element={<Categories token={token} />} />
                   <Route path="/inventory" element={<Inventory token={token} />} />
                   <Route path="/orders" element={<Orders token={token} />} />
+                  <Route path="/crm" element={<Crm token={token} />} />
                   <Route path="/returns" element={<Returns token={token} />} />
                   <Route path="/offers" element={<Offers token={token} />} />
                   <Route path="/delivery" element={<Delivery token={token} />} />
