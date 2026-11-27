@@ -9,6 +9,7 @@ import {
   listCategories,
   removeCategory,
   removeSubCategory,
+  reorderCategories,
   setCategoryBanner,
   toggleCategory,
   toggleSubCategory,
@@ -20,6 +21,7 @@ const categoryRouter = express.Router();
 categoryRouter.get("/list", listCategories);
 categoryRouter.get("/admin", adminAuth, adminCategories);
 categoryRouter.post("/add", adminAuth, addCategory);
+categoryRouter.post("/reorder", adminAuth, reorderCategories);
 categoryRouter.post("/subcategory", adminAuth, addSubCategory);
 categoryRouter.post("/toggle", adminAuth, toggleCategory);
 categoryRouter.post("/toggle-sub", adminAuth, toggleSubCategory);

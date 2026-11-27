@@ -72,6 +72,33 @@ const Categories = ({ token }) => {
     }
   };
 
+  const moveCategory = async (index, direction) => {
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= categories.length) return;
+    const next = [...categories];
+    const [item] = next.splice(index, 1);
+    next.splice(nextIndex, 0, item);
+    setCategories(next);
+    try {
+      const response = await axios.post(
+        backendUrl + "/api/category/reorder",
+        { orderedIds: next.map((category) => category._id) },
+        { headers: { token } },
+      );
+      if (response.data.success) {
+        toast.success(response.data.message || "Order saved");
+        if (response.data.categories) setCategories(response.data.categories);
+        else await fetchCategories();
+      } else {
+        toast.error(response.data.message);
+        await fetchCategories();
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Could not save order");
+      await fetchCategories();
+    }
+  };
+
   return (
     <div className="w-full px-2 sm:px-4">
       <div className="mb-5">
@@ -79,7 +106,7 @@ const Categories = ({ token }) => {
           Categories
         </h2>
         <p className="text-xs text-gray-400 mt-0.5">
-          Add categories, subcategories, and home-page banners. Disabled ones stay hidden on the store.
+          Add categories, set strip order with ↑ ↓, banners, and subcategories. Disabled ones stay hidden on the store.
         </p>
       </div>
 
@@ -105,17 +132,48 @@ const Categories = ({ token }) => {
         <p className="text-sm text-gray-400">Loading categories...</p>
       ) : (
         <div className="flex flex-col gap-3">
-          {categories.map((category) => (
+          {categories.map((category, index) => (
             <article
               key={category._id}
               className="bg-white border border-gray-200 rounded-xl shadow-sm p-4"
             >
               <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-gray-800">{category.name}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    {category.active ? "Visible on the store" : "Hidden from the store"}
-                  </p>
+                <div className="flex items-start gap-3">
+                  <div className="flex flex-col gap-1 pt-0.5">
+                    <button
+                      type="button"
+                      disabled={index === 0}
+                      onClick={() => moveCategory(index, -1)}
+                      className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 text-gray-600 disabled:opacity-30"
+                      aria-label={`Move ${category.name} up`}
+                      title="Show earlier in strip"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      disabled={index === categories.length - 1}
+                      onClick={() => moveCategory(index, 1)}
+                      className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 text-gray-600 disabled:opacity-30"
+                      aria-label={`Move ${category.name} down`}
+                      title="Show later in strip"
+                    >
+                      ↓
+                    </button>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800">
+                      <span className="mr-2 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500">
+                        #{index + 1}
+                      </span>
+                      {category.name}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {category.active ? "Visible on the store" : "Hidden from the store"}
+                      {" · "}
+                      Strip position {index + 1}
+                    </p>
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   <button

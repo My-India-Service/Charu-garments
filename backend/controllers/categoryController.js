@@ -2,15 +2,18 @@ import categoryModel from "../models/categoryModel.js";
 import productModel from "../models/productModel.js";
 import { uploadBuffer } from "../utils/cloudinaryUpload.js";
 
-const DEFAULTS = ["Men", "Women", "Kids"].map((name) => ({
+const DEFAULTS = ["Men", "Women", "Kids"].map((name, index) => ({
   name,
   active: true,
+  sortOrder: index,
   subCategories: [
     { name: "Topwear", active: true, sizeType: "apparel" },
     { name: "Bottomwear", active: true, sizeType: "bottom" },
     { name: "Winterwear", active: true, sizeType: "apparel" },
   ],
 }));
+
+const categorySort = { sortOrder: 1, name: 1 };
 
 const sameName = (left, right) =>
   left.trim().toLowerCase() === right.trim().toLowerCase();
@@ -29,7 +32,7 @@ const listCategories = async (req, res) => {
     await ensureDefaultCategories();
     const categories = await categoryModel
       .find({ active: true })
-      .sort({ name: 1 })
+      .sort(categorySort)
       .lean();
     const visible = categories.map((category) => ({
       ...category,
@@ -45,7 +48,7 @@ const listCategories = async (req, res) => {
 const adminCategories = async (req, res) => {
   try {
     await ensureDefaultCategories();
-    const categories = await categoryModel.find({}).sort({ name: 1 });
+    const categories = await categoryModel.find({}).sort(categorySort);
     res.json({ success: true, categories });
   } catch (error) {
     console.log(error);
@@ -63,8 +66,41 @@ const addCategory = async (req, res) => {
       return res.json({ success: false, message: "Category already exists" });
     }
 
-    const category = await categoryModel.create({ name, subCategories: [] });
+    const maxOrder = categories.reduce(
+      (max, item) => Math.max(max, Number(item.sortOrder || 0)),
+      -1,
+    );
+    const category = await categoryModel.create({
+      name,
+      sortOrder: maxOrder + 1,
+      subCategories: [],
+    });
     res.json({ success: true, message: "Category added", category });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
+const reorderCategories = async (req, res) => {
+  try {
+    const orderedIds = Array.isArray(req.body.orderedIds) ? req.body.orderedIds : [];
+    if (!orderedIds.length) {
+      return res.json({ success: false, message: "Send the category order" });
+    }
+
+    await Promise.all(
+      orderedIds.map((id, index) =>
+        categoryModel.updateOne({ _id: id }, { $set: { sortOrder: index } }),
+      ),
+    );
+
+    const categories = await categoryModel.find({}).sort(categorySort);
+    res.json({
+      success: true,
+      message: "Category order saved",
+      categories,
+    });
   } catch (error) {
     console.log(error);
     res.json({ success: false, message: error.message });
@@ -237,6 +273,7 @@ export {
   listCategories,
   adminCategories,
   addCategory,
+  reorderCategories,
   addSubCategory,
   toggleCategory,
   toggleSubCategory,
