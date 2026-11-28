@@ -131,6 +131,18 @@ const Navbar = () => {
     node.scrollBy({ left: direction * 220, behavior: "smooth" });
   };
 
+  useEffect(() => {
+    const node = stripRef.current;
+    if (!node) return undefined;
+    const onWheel = (event) => {
+      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+      event.preventDefault();
+      node.scrollLeft += event.deltaY;
+    };
+    node.addEventListener("wheel", onWheel, { passive: false });
+    return () => node.removeEventListener("wheel", onWheel);
+  }, [categories.length]);
+
   const megaPanel = (
     <div className="overflow-hidden rounded-2xl border border-[#E6DFD6] bg-white shadow-[0_20px_50px_rgba(28,25,23,0.14)]">
       <div className="grid min-h-[20rem] grid-cols-1 sm:grid-cols-[15.5rem_1fr]">
@@ -374,9 +386,9 @@ const Navbar = () => {
         )}
       </div>
 
-      {/* Flipkart-style category strip — horizontal scroll */}
-      <nav className="-mx-4 hidden border-t border-[#E6DFD6] bg-white sm:-mx-[5vw] md:-mx-[7vw] lg:-mx-[9vw] lg:block">
-        <div className="relative">
+      {/* Flipkart-style category strip — horizontal scroll only */}
+      <nav className="-mx-4 hidden overflow-visible border-t border-[#E6DFD6] bg-white sm:-mx-[5vw] md:-mx-[7vw] lg:-mx-[9vw] lg:block">
+        <div className="relative overflow-visible">
           <button
             type="button"
             aria-label="Scroll categories left"
@@ -395,7 +407,7 @@ const Navbar = () => {
           </button>
           <ul
             ref={stripRef}
-            className="flex max-w-full flex-nowrap items-stretch gap-0 overflow-x-auto overscroll-x-contain scroll-smooth px-12"
+            className="flex h-11 max-w-full flex-nowrap items-center gap-0 overflow-x-auto overflow-y-hidden overscroll-x-contain scroll-smooth px-12 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
           >
             {categories.map((category) => {
               const selected = activeCategory === category.name;
@@ -403,12 +415,12 @@ const Navbar = () => {
               return (
                 <li
                   key={category._id || category.name}
-                  className="group relative shrink-0 list-none"
+                  className="group relative h-11 shrink-0 list-none"
                 >
                   <Link
                     to={shopPath(category.name)}
                     onMouseEnter={() => setHoverCategory(category.name)}
-                    className={`flex items-center gap-1 whitespace-nowrap px-3.5 py-3 text-[13px] font-medium transition-colors ${
+                    className={`flex h-full items-center gap-1 whitespace-nowrap px-3.5 text-[13px] font-medium transition-colors ${
                       selected
                         ? "border-b-2 border-[#7A3030] text-[#7A3030]"
                         : "border-b-2 border-transparent text-[#3F3832] hover:text-[#7A3030]"
@@ -456,7 +468,7 @@ const Navbar = () => {
         </div>
       </nav>
 
-      <div className="-mx-1 flex gap-2 overflow-x-auto pb-2 lg:hidden">
+      <div className="-mx-1 flex gap-2 overflow-x-auto overflow-y-hidden pb-2 lg:hidden">
         <button
           type="button"
           onClick={() => setVisible(true)}

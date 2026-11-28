@@ -1,10 +1,42 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ShopContext } from "../context/ShopContext";
 import { categoryBanners } from "../components/HomeBanners";
 import { assets } from "../assets/assets";
 import Title from "../components/Title";
 import ProductItem from "../components/ProductItem";
+
+const PRICE_RANGES = [
+  { id: "0-299", label: "Under ₹299", min: 0, max: 299 },
+  { id: "300-599", label: "₹300 – ₹599", min: 300, max: 599 },
+  { id: "600-999", label: "₹600 – ₹999", min: 600, max: 999 },
+  { id: "1000-1999", label: "₹1000 – ₹1999", min: 1000, max: 1999 },
+  { id: "2000+", label: "₹2000 & Above", min: 2000, max: Infinity },
+];
+
+const colorMeta = (color) =>
+  typeof color === "string"
+    ? { name: color, hex: "#1C1917" }
+    : { name: color?.name || "", hex: color?.hex || "#1C1917" };
+
+const productSizes = (item) => {
+  const fromStock = (item.stock || []).map((row) => row.size).filter(Boolean);
+  const fromSizes = Array.isArray(item.sizes) ? item.sizes.filter(Boolean) : [];
+  return [...new Set([...fromSizes, ...fromStock])];
+};
+
+const productColors = (item) => {
+  const fromColors = (item.colors || []).map(colorMeta).filter((c) => c.name);
+  const fromStock = (item.stock || [])
+    .map((row) => row.color)
+    .filter(Boolean)
+    .map((name) => ({ name, hex: "#1C1917" }));
+  const map = new Map();
+  [...fromColors, ...fromStock].forEach((color) => {
+    if (!map.has(color.name)) map.set(color.name, color);
+  });
+  return [...map.values()];
+};
 
 const Collection = () => {
   const { products, search, showSearch, categories: catalog } = useContext(ShopContext);
@@ -14,6 +46,9 @@ const Collection = () => {
   const [filterProducts, setFilterProducts] = useState([]);
   const [category, setCategory] = useState([]);
   const [subCategory, setSubCategory] = useState([]);
+  const [selectedSizes, setSelectedSizes] = useState([]);
+  const [selectedColors, setSelectedColors] = useState([]);
+  const [selectedPrices, setSelectedPrices] = useState([]);
   const [categoryOptions, setCategoryOptions] = useState([]);
   const [subCategoryOptions, setSubCategoryOptions] = useState([]);
   const [sortType, setSortType] = useState("relevant");
@@ -37,95 +72,128 @@ const Collection = () => {
     ]);
   }, [catalog]);
 
-  const toggleCategory = (e) => {
-    if (category.includes(e.target.value)) {
-      setCategory((prev) => prev.filter((item) => item !== e.target.value));
-    } else {
-      setCategory((prev) => [...prev, e.target.value]);
-    }
+  const sizeOptions = useMemo(() => {
+    const set = new Set();
+    products.forEach((item) => productSizes(item).forEach((size) => set.add(size)));
+    return [...set].sort((a, b) =>
+      String(a).localeCompare(String(b), undefined, { numeric: true }),
+    );
+  }, [products]);
+
+  const colorOptions = useMemo(() => {
+    const map = new Map();
+    products.forEach((item) => {
+      productColors(item).forEach((color) => {
+        if (!map.has(color.name)) map.set(color.name, color);
+      });
+    });
+    return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }, [products]);
+
+  const toggleValue = (setter) => (e) => {
+    const value = e.target.value;
+    setter((prev) =>
+      prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value],
+    );
   };
 
-  const toggleSubCategory = (e) => {
-    if (subCategory.includes(e.target.value)) {
-      setSubCategory((prev) => prev.filter((item) => item !== e.target.value));
-    } else {
-      setSubCategory((prev) => [...prev, e.target.value]);
-    }
-  };
+  const activeFilterCount =
+    category.length +
+    subCategory.length +
+    selectedSizes.length +
+    selectedColors.length +
+    selectedPrices.length;
 
-  const activeFilterCount = category.length + subCategory.length;
+  const clearFilters = () => {
+    setCategory([]);
+    setSubCategory([]);
+    setSelectedSizes([]);
+    setSelectedColors([]);
+    setSelectedPrices([]);
+  };
 
   useEffect(() => {
     let productsCopy = [...products];
 
-    // Search
     if (showSearch && search) {
       productsCopy = productsCopy.filter((item) =>
         item.name.toLowerCase().includes(search.toLowerCase()),
       );
     }
 
-    // Category Filter
     if (category.length > 0) {
-      productsCopy = productsCopy.filter((item) =>
-        category.includes(item.category),
-      );
+      productsCopy = productsCopy.filter((item) => category.includes(item.category));
     }
 
-    // Sub Category Filter
     if (subCategory.length > 0) {
       productsCopy = productsCopy.filter((item) =>
         subCategory.includes(item.subCategory),
       );
     }
 
-    // Sorting
+    if (selectedSizes.length > 0) {
+      productsCopy = productsCopy.filter((item) =>
+        productSizes(item).some((size) => selectedSizes.includes(size)),
+      );
+    }
+
+    if (selectedColors.length > 0) {
+      productsCopy = productsCopy.filter((item) =>
+        productColors(item).some((color) => selectedColors.includes(color.name)),
+      );
+    }
+
+    if (selectedPrices.length > 0) {
+      const ranges = PRICE_RANGES.filter((range) => selectedPrices.includes(range.id));
+      productsCopy = productsCopy.filter((item) => {
+        const price = Number(item.price || 0);
+        return ranges.some((range) => price >= range.min && price <= range.max);
+      });
+    }
+
     switch (sortType) {
       case "low-high":
         productsCopy.sort((a, b) => a.price - b.price);
         break;
-
       case "high-low":
         productsCopy.sort((a, b) => b.price - a.price);
         break;
-
       default:
-        // Fisher-Yates Shuffle for "Relevant"
-        for (let i = productsCopy.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [productsCopy[i], productsCopy[j]] = [
-            productsCopy[j],
-            productsCopy[i],
-          ];
-        }
+        productsCopy.sort((a, b) => Number(b.date || 0) - Number(a.date || 0));
         break;
     }
 
     setFilterProducts(productsCopy);
-  }, [products, category, subCategory, sortType, search, showSearch]);
+  }, [
+    products,
+    category,
+    subCategory,
+    selectedSizes,
+    selectedColors,
+    selectedPrices,
+    sortType,
+    search,
+    showSearch,
+  ]);
 
-  // ── Reusable checkbox group ──
   const FilterGroup = ({ title, options, checked, onChange }) => (
     <div className="border-b border-gray-100 py-5">
-      <p className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-4">
+      <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-400">
         {title}
       </p>
-      <div className="flex flex-col gap-3">
+      <div className="flex max-h-48 flex-col gap-3 overflow-y-auto pr-1">
         {options.map((opt) => (
-          <label
-            key={opt}
-            className="flex items-center gap-3 cursor-pointer group"
-          >
-            <div className="relative w-4 h-4 flex-shrink-0">
+          <label key={opt} className="group flex cursor-pointer items-center gap-3">
+            <div className="relative flex h-4 w-4 flex-shrink-0">
               <input
                 type="checkbox"
                 value={opt}
                 checked={checked.includes(opt)}
                 onChange={onChange}
-                className="peer appearance-none w-4 h-4 border border-gray-300 rounded-sm checked:border-black checked:bg-black transition-all cursor-pointer"
+                className="peer h-4 w-4 cursor-pointer appearance-none rounded-sm border border-gray-300 transition-all checked:border-black checked:bg-black"
               />
               <svg
-                className="absolute inset-0 w-4 h-4 text-white pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity"
+                className="pointer-events-none absolute inset-0 h-4 w-4 text-white opacity-0 transition-opacity peer-checked:opacity-100"
                 viewBox="0 0 16 16"
                 fill="none"
               >
@@ -138,7 +206,7 @@ const Collection = () => {
                 />
               </svg>
             </div>
-            <span className="text-sm text-gray-600 group-hover:text-black transition-colors">
+            <span className="text-sm text-gray-600 transition-colors group-hover:text-black">
               {opt}
             </span>
           </label>
@@ -148,13 +216,12 @@ const Collection = () => {
   );
 
   return (
-    <div className="flex flex-col sm:flex-row gap-0 sm:gap-10 pt-10">
+    <div className="flex flex-col gap-0 pt-10 sm:flex-row sm:gap-10">
       {/* ── Filter Sidebar ── */}
       <div className="w-full flex-shrink-0 sm:sticky sm:top-32 sm:w-60 sm:min-w-[15rem] sm:self-start">
-        {/* Mobile: Filter Toggle Bar */}
         <button
           onClick={() => setShowFilter(!showFilter)}
-          className="sm:hidden w-full flex items-center justify-between px-4 py-3 border border-gray-200 bg-gray-50 rounded mb-2"
+          className="mb-2 flex w-full items-center justify-between rounded border border-gray-200 bg-gray-50 px-4 py-3 sm:hidden"
         >
           <div className="flex items-center gap-2">
             <svg
@@ -173,7 +240,7 @@ const Collection = () => {
             </svg>
             <span className="text-sm font-medium text-gray-700">Filters</span>
             {activeFilterCount > 0 && (
-              <span className="w-5 h-5 rounded-full bg-black text-white text-[10px] flex items-center justify-center leading-none">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-black text-[10px] leading-none text-white">
                 {activeFilterCount}
               </span>
             )}
@@ -185,44 +252,175 @@ const Collection = () => {
           />
         </button>
 
-        {/* Filter Panel */}
         <div
           className={`overflow-hidden transition-all duration-300 sm:block ${
             showFilter
-              ? "max-h-[600px] opacity-100"
+              ? "max-h-[1200px] opacity-100"
               : "max-h-0 opacity-0 sm:max-h-none sm:opacity-100"
           }`}
         >
-          {/* Desktop label */}
-          <p className="hidden sm:block text-xs font-semibold tracking-widest text-gray-400 uppercase mb-5">
-            Filters
+          <div className="mb-5 hidden items-center justify-between sm:flex">
+            <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">
+              Filters
+              {activeFilterCount > 0 && (
+                <span className="ml-2 text-black">({activeFilterCount})</span>
+              )}
+            </p>
             {activeFilterCount > 0 && (
-              <span className="ml-2 text-black">({activeFilterCount})</span>
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="text-[11px] text-gray-400 underline underline-offset-2 hover:text-black"
+              >
+                Clear
+              </button>
             )}
-          </p>
+          </div>
 
           <FilterGroup
             title="Categories"
             options={categoryOptions}
             checked={category}
-            onChange={toggleCategory}
+            onChange={toggleValue(setCategory)}
           />
 
           <FilterGroup
             title="Type"
             options={subCategoryOptions}
             checked={subCategory}
-            onChange={toggleSubCategory}
+            onChange={toggleValue(setSubCategory)}
           />
 
-          {/* Clear filters — only shown when active */}
+          {/* Price — Meesho style ranges */}
+          <div className="border-b border-gray-100 py-5">
+            <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-400">
+              Price
+            </p>
+            <div className="flex flex-col gap-3">
+              {PRICE_RANGES.map((range) => (
+                <label
+                  key={range.id}
+                  className="group flex cursor-pointer items-center gap-3"
+                >
+                  <div className="relative flex h-4 w-4 flex-shrink-0">
+                    <input
+                      type="checkbox"
+                      value={range.id}
+                      checked={selectedPrices.includes(range.id)}
+                      onChange={toggleValue(setSelectedPrices)}
+                      className="peer h-4 w-4 cursor-pointer appearance-none rounded-sm border border-gray-300 transition-all checked:border-black checked:bg-black"
+                    />
+                    <svg
+                      className="pointer-events-none absolute inset-0 h-4 w-4 text-white opacity-0 transition-opacity peer-checked:opacity-100"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                    >
+                      <path
+                        d="M3 8l3.5 3.5L13 5"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </div>
+                  <span className="text-sm text-gray-600 transition-colors group-hover:text-black">
+                    {range.label}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Size */}
+          {sizeOptions.length > 0 && (
+            <div className="border-b border-gray-100 py-5">
+              <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-400">
+                Size
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {sizeOptions.map((size) => {
+                  const active = selectedSizes.includes(size);
+                  return (
+                    <button
+                      key={size}
+                      type="button"
+                      onClick={() =>
+                        setSelectedSizes((prev) =>
+                          prev.includes(size)
+                            ? prev.filter((item) => item !== size)
+                            : [...prev, size],
+                        )
+                      }
+                      className={`min-w-10 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${
+                        active
+                          ? "border-[#1C1917] bg-[#1C1917] text-white"
+                          : "border-gray-200 text-gray-600 hover:border-gray-400"
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Color */}
+          {colorOptions.length > 0 && (
+            <div className="border-b border-gray-100 py-5">
+              <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-400">
+                Color
+              </p>
+              <div className="flex max-h-52 flex-col gap-3 overflow-y-auto pr-1">
+                {colorOptions.map((color) => {
+                  const active = selectedColors.includes(color.name);
+                  return (
+                    <label
+                      key={color.name}
+                      className="group flex cursor-pointer items-center gap-3"
+                    >
+                      <div className="relative flex h-4 w-4 flex-shrink-0">
+                        <input
+                          type="checkbox"
+                          value={color.name}
+                          checked={active}
+                          onChange={toggleValue(setSelectedColors)}
+                          className="peer h-4 w-4 cursor-pointer appearance-none rounded-sm border border-gray-300 transition-all checked:border-black checked:bg-black"
+                        />
+                        <svg
+                          className="pointer-events-none absolute inset-0 h-4 w-4 text-white opacity-0 transition-opacity peer-checked:opacity-100"
+                          viewBox="0 0 16 16"
+                          fill="none"
+                        >
+                          <path
+                            d="M3 8l3.5 3.5L13 5"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </div>
+                      <span
+                        className="h-4 w-4 shrink-0 rounded-full border border-gray-200"
+                        style={{ backgroundColor: color.hex }}
+                        aria-hidden
+                      />
+                      <span className="text-sm text-gray-600 transition-colors group-hover:text-black">
+                        {color.name}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {activeFilterCount > 0 && (
             <button
-              onClick={() => {
-                setCategory([]);
-                setSubCategory([]);
-              }}
-              className="mt-4 text-xs text-gray-400 underline underline-offset-2 hover:text-black transition-colors"
+              onClick={clearFilters}
+              className="mt-4 text-xs text-gray-400 underline underline-offset-2 transition-colors hover:text-black"
             >
               Clear all filters
             </button>
@@ -231,7 +429,7 @@ const Collection = () => {
       </div>
 
       {/* ── Product Grid ── */}
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0 flex-1">
         {category.length === 1 &&
           (() => {
             const banner =
@@ -245,7 +443,7 @@ const Collection = () => {
               />
             ) : null;
           })()}
-        {/* Header row */}
+
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <Title
             text1={subCategory[0] ? category[0] || "SHOP" : category[0] ? "SHOP" : "ALL"}
@@ -263,15 +461,13 @@ const Collection = () => {
           </select>
         </div>
 
-        {/* Results count */}
-        <p className="text-xs text-gray-400 mb-5">
+        <p className="mb-5 text-xs text-gray-400">
           {filterProducts.length}{" "}
           {filterProducts.length === 1 ? "product" : "products"}
         </p>
 
-        {/* Grid */}
         {filterProducts.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 gap-y-6 sm:gap-y-8">
+          <div className="grid grid-cols-2 gap-3 gap-y-6 sm:gap-4 sm:gap-y-8 md:grid-cols-3 lg:grid-cols-4">
             {filterProducts.map((item) => (
               <ProductItem
                 key={item._id}
@@ -291,17 +487,12 @@ const Collection = () => {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-24 text-center">
-            <p className="text-gray-300 text-4xl mb-3">∅</p>
-            <p className="text-sm text-gray-400">
-              No products match your filters.
-            </p>
+            <p className="mb-3 text-4xl text-gray-300">∅</p>
+            <p className="text-sm text-gray-400">No products match your filters.</p>
             {activeFilterCount > 0 && (
               <button
-                onClick={() => {
-                  setCategory([]);
-                  setSubCategory([]);
-                }}
-                className="mt-4 text-xs underline underline-offset-2 text-gray-400 hover:text-black transition-colors"
+                onClick={clearFilters}
+                className="mt-4 text-xs text-gray-400 underline underline-offset-2 transition-colors hover:text-black"
               >
                 Clear filters
               </button>
